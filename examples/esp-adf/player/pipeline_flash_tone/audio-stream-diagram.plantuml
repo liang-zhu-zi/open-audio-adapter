@@ -1,0 +1,79 @@
+﻿@startuml pipeline_flash_tone
+title Pipeline Flash Tone
+allowmixing
+
+node "ESP Device" as ESPDevice {
+
+    component "Play Pipeline" as PlayPipeline {
+
+        component FlashTone [
+            <b>Flash Partition
+            ....
+            <i>.name = flash_tone
+            <i>.type = data
+            ....
+            [flash]
+        ]
+
+        component ToneStream [
+            <b>tone_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            ....
+            tone_stream_reader
+            [tone]
+            ....
+            <i>...
+        ]
+
+        component Mp3Decoder [
+            <b>mp3_decoder
+            ....
+            ...
+            ....
+            mp3_decoder
+            [mp3]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+
+        component I2SStream [
+            <b>i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            ....
+            i2s_stream_writer
+            [i2s]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
+            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
+            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
+        ]
+
+        component HALCodec [
+            <b>audio_hal_ctrl_codec
+            ....
+            <i>AUDIO_HAL_CODEC_MODE_DECODE
+            ....
+            [codec_chip]
+        ]
+    }
+
+    portout "Analog Source" as AnalogSource
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink" as AnalogSink
+}
+
+FlashTone  --> ToneStream
+ToneStream --> Mp3Decoder       #line:black;line.bold;text:black
+Mp3Decoder --> I2SStream        #line:black;line.bold;text:black
+I2SStream  --> HALCodec         #line:black;line.bold;text:black
+HALCodec   --> AnalogSource     #line:black;line.bold;text:black
+
+AnalogSource --> AnalogSink     #line:black;line.bold;text:black
+
+@enduml
