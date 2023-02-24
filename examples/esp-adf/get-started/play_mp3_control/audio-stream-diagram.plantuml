@@ -1,5 +1,5 @@
-﻿@startuml pipe_a2dp_sink_stream
-title A2DP SINK Stream
+﻿@startuml play_mp3_control
+title Play MP3 Control
 allowmixing
 
 

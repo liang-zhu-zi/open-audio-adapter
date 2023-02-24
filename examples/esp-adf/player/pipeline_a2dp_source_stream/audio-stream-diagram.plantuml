@@ -1,5 +1,5 @@
-﻿@startuml pipe_a2dp_sink_stream
-title A2DP SINK Stream
+﻿@startuml pipeline_a2dp_source_stream
+title Pipeline A2DP Source Stream
 allowmixing
 
 node "BT Device" as BTDevice  {
