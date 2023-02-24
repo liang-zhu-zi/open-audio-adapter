@@ -1,0 +1,96 @@
+﻿@startuml pipe_a2dp_sink_stream
+title A2DP SINK Stream
+allowmixing
+
+node "BT Device" as BTDevice  {
+    portout "A2DP Source" as BTDeviceA2DPSource
+} 
+
+node "ESP Device" as ESPDevice  {
+    json "<b><color navy>Periph set" as periph_set {
+        "<i>button_handle": "periph_key",
+        "<i>touch_periph": "periph_touch",
+        "<i>bt_periph": "periph_bt",
+        "": "",
+        "<i><color navy>input_key_service" : {
+            "CLICK_RELEASE":["[Play] play", 
+                             "[Set] pause",
+                             "[Vol+] Vol+",
+                             "[Vol-] Vol-"
+            ],
+            "PRESS":["[long Vol+] next",
+                     "[long Vol-] Previous"
+            ]
+        }
+    }
+
+    portin "A2DP Sink" as BTA2DPSink
+
+    component "Play Pipeline" as PlayPipeline {
+        component BTController [
+            <b>esp_bt_controller
+            ....
+            <i>ESP_BT_MODE_CLASSIC_BT
+            ....
+            board_handle
+            [Bluetooth]
+        ]
+
+        component A2DPStream [
+            <b>a2dp_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>.audio_hal = board_handle->audio_hal
+            ....
+            bt_stream_reader
+            [bt]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+
+        component I2SStream [
+            <b>i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            ....
+            i2s_stream_writer
+            [i2s]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
+            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
+            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
+        ]
+
+        component HALCodec [
+            <b>audio_hal_ctrl_codec
+            ....
+            <i>AUDIO_HAL_CODEC_MODE_DECODE
+            ....
+            [codec_chip]
+        ]
+    }
+
+    portout "Analog Source" as AnalogSource
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink" as AnalogSink
+
+    component "Line Out" as LineOut
+    component "Headephone" as Headephone
+    component "Speaker" as SpeakerX
+}
+
+BTDeviceA2DPSource --> BTA2DPSink   #line:black;line.bold;text:black
+
+BTA2DPSink  --> BTController    #line:black;line.bold;text:black
+BTController--> A2DPStream      #line:black;line.bold;text:black
+A2DPStream  --> I2SStream       #line:black;line.bold;text:black
+I2SStream   --> HALCodec        #line:black;line.bold;text:black
+HALCodec    --> AnalogSource    #line:black;line.bold;text:black
+
+AnalogSource --> AnalogSink     #line:black;line.bold;text:black
+
+@enduml
