@@ -1,0 +1,87 @@
+﻿@startuml pipe_a2dp_sink_stream
+title A2DP SINK Stream
+allowmixing
+
+node "TCP Server" as TCPServer  {
+    portout "TCP Source" as TCPSource
+} 
+
+node "ESP Device" as ESPDevice  {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>wifi_handle" : {
+            "periph_wifi" : [".ssid", ".password"]
+        }
+    }
+    
+    portin "TCP Sink" as TCPSink
+
+    component "Play Pipeline" as PlayPipeline {
+
+        component TCPStream [
+            <b>tcp_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>.port = CONFIG_TCP_PORT
+            <i>.port = CONFIG_TCP_URL
+            ....
+            tcp_stream_reader
+            [tcp]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+
+        component Mp3Decoder [
+            <b>mp3_decoder
+            ....
+            ...
+            ....
+            mp3_decoder
+            [mp3]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+
+        component I2SStream [
+            <b>i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            ....
+            i2s_stream_writer
+            [i2s]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
+            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
+            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
+        ]
+
+        component HALCodec [
+            <b>audio_hal_ctrl_codec
+            ....
+            <i>AUDIO_HAL_CODEC_MODE_DECODE
+            ....
+            [codec_chip]
+        ]
+    }
+
+    portout "Analog Source" as AnalogSource
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink" as AnalogSink
+}
+
+TCPSource --> TCPSink           #line:black;line.bold;text:black
+
+TCPSink    --> TCPStream        #line:black;line.bold;text:black
+TCPStream  --> Mp3Decoder       #line:black;line.bold;text:black
+Mp3Decoder --> I2SStream        #line:black;line.bold;text:black
+I2SStream  --> HALCodec         #line:black;line.bold;text:black
+HALCodec   --> AnalogSource     #line:black;line.bold;text:black
+
+AnalogSource --> AnalogSink     #line:black;line.bold;text:black
+
+@enduml

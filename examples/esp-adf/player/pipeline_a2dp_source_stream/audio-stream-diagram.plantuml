@@ -82,9 +82,9 @@ BTDeviceA2DPSink <-- BTA2DPSource #line:fuchsia;line.bold;text:fuchsia
 
 BTA2DPSource<-- BTController    #line:fuchsia;line.bold;text:fuchsia
 BTController<-- A2DPStream      #line:fuchsia;line.bold;text:fuchsia
-A2DPStream  <-- Mp3Decoder       #line:fuchsia;line.bold;text:fuchsia
-Mp3Decoder   <-- FatfsStream        #line:fuchsia;line.bold;text:fuchsia
-FatfsStream    <-- SDCardSink      #line:fuchsia;line.bold;text:fuchsia
+A2DPStream  <-- Mp3Decoder      #line:fuchsia;line.bold;text:fuchsia
+Mp3Decoder  <-- FatfsStream     #line:fuchsia;line.bold;text:fuchsia
+FatfsStream <-- SDCardSink      #line:fuchsia;line.bold;text:fuchsia
 
 SDCardSink  <-- SDCardSource    #line:fuchsia;line.bold;text:fuchsia
 
