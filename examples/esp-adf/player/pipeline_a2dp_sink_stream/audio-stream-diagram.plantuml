@@ -77,10 +77,6 @@ node "ESP Device" as ESPDevice  {
 
 node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink" as AnalogSink
-
-    component "Line Out" as LineOut
-    component "Headephone" as Headephone
-    component "Speaker" as SpeakerX
 }
 
 BTDeviceA2DPSource --> BTA2DPSink   #line:black;line.bold;text:black

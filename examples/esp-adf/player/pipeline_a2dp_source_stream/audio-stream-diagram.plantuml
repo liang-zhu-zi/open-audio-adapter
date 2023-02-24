@@ -1,0 +1,91 @@
+﻿@startuml pipe_a2dp_sink_stream
+title A2DP SINK Stream
+allowmixing
+
+node "BT Device" as BTDevice  {
+    portout "A2DP Sink" as BTDeviceA2DPSink
+} 
+
+node "ESP Device" as ESPDevice  {
+    json "<b><color navy>Periph set" as periph_set {
+        "<i>sdcard_handle": "periph_sdcard",
+        "<i>button_handle": "periph_key",
+        "<i>touch_periph":  "periph_touch",
+        "<i><color navy>bt_periph": 
+                            ["PERIPH_BLUETOOTH_DISCONNECTED", 
+                             "PERIPH_BLUETOOTH_AUDIO_SUSPENDED"
+        ]
+    }
+
+    portin "A2DP Source" as BTA2DPSource
+
+    component "Capture Pipeline" as CapturePipeline {
+        component BTController [
+            <b>esp_bt_controller
+            ....
+            <i>ESP_BT_MODE_CLASSIC_BT
+            ....
+            board_handle
+            [Bluetooth]
+        ]
+
+        component A2DPStream [
+            <b>a2dp_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>.audio_hal = board_handle->audio_hal
+            ....
+            bt_stream_writer
+            [bt]
+            ....
+            <i><color olive>...
+        ]
+
+        component Mp3Decoder [
+            <b>mp3_decoder
+            ....
+            ...
+            ....
+            mp3_decoder
+            [mp3]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+
+        component FatfsStream [
+            <b>fatfs_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            ....
+            fatfs_stream_reader
+            [file]
+        ]
+        
+        component HALCodec [
+            <b>audio_hal_ctrl_codec
+            ....
+            <i>AUDIO_HAL_CODEC_MODE_DECODE
+            ....
+            [codec_chip]
+        ]
+    }
+
+    portout "SDCard Sink" as SDCardSink
+} 
+
+node "SD Card" as SDCard  {
+    portin "SDCard Source" as SDCardSource
+}
+
+BTDeviceA2DPSink <-- BTA2DPSource #line:fuchsia;line.bold;text:fuchsia
+
+BTA2DPSource<-- BTController    #line:fuchsia;line.bold;text:fuchsia
+BTController<-- A2DPStream      #line:fuchsia;line.bold;text:fuchsia
+A2DPStream  <-- Mp3Decoder       #line:fuchsia;line.bold;text:fuchsia
+Mp3Decoder   <-- FatfsStream        #line:fuchsia;line.bold;text:fuchsia
+FatfsStream    <-- SDCardSink      #line:fuchsia;line.bold;text:fuchsia
+
+SDCardSink  <-- SDCardSource    #line:fuchsia;line.bold;text:fuchsia
+
+@enduml
