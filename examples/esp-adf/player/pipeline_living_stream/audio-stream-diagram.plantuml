@@ -1,5 +1,5 @@
-﻿@startuml pipeline_http_mp3
-title Pipeline HTTP MP3
+﻿@startuml pipeline_living_stream
+title Pipeline HTTP Living Stream
 allowmixing
 
 label "//Ref: esp-adf/get-started/play_mp3_control//"
@@ -26,22 +26,25 @@ node "ESP Device" as ESPDevice  {
         component HTTPStream [
             <b>http_stream
             ....
+            <i>.event_handle = _http_stream_event_handle
             <i>.type = AUDIO_STREAM_READER
+            <i>.enable_playlist_parser = true
             ....
             http_stream_reader
             [http]
             ....
             <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
-            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
+            <i><color olive>msg.data == AEL_STATUS_ERROR_OPEN
         ]
 
-        component Mp3Decoder [
-            <b>mp3_decoder
+        component AACDecoder [
+            <b>aac_decoder
             ....
             ...
             ....
-            mp3_decoder
-            [mp3]
+            aac_decoder
+            [aac]
             ....
             <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
             <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
@@ -55,10 +58,7 @@ node "ESP Device" as ESPDevice  {
             i2s_stream_writer
             [i2s]
             ....
-            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
-            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
-            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
-            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
+            <i><color olive>...
         ]
 
         component HALCodec [
@@ -77,11 +77,11 @@ node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink" as AnalogSink
 }
 
-HTTPSource --> HTTPSink           #line:black;line.bold;text:black
+HTTPSource --> HTTPSink         #line:black;line.bold;text:black
 
-HTTPSink    --> HTTPStream        #line:black;line.bold;text:black
-HTTPStream  --> Mp3Decoder       #line:black;line.bold;text:black
-Mp3Decoder --> I2SStream        #line:black;line.bold;text:black
+HTTPSink   --> HTTPStream       #line:black;line.bold;text:black
+HTTPStream --> AACDecoder       #line:black;line.bold;text:black
+AACDecoder --> I2SStream        #line:black;line.bold;text:black
 I2SStream  --> HALCodec         #line:black;line.bold;text:black
 HALCodec   --> AnalogSource     #line:black;line.bold;text:black
 

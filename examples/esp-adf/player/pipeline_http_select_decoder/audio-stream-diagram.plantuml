@@ -5,6 +5,7 @@ allowmixing
 label "//Ref: esp-adf/get-started/play_mp3_control//"
 label "//Ref: esp-adf/player/pipeline_http_mp3//"
 label "//Ref: esp-adf/player/pipeline_http_select_decoder//"
+label "//Ref: esp-adf/player/pipeline_living_stream//"
 
 node "HTTP Server" as HTTPServer  {
     portout "HTTP Source" as HTTPSource
