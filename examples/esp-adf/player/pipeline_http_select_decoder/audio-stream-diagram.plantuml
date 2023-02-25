@@ -1,12 +1,13 @@
-﻿@startuml pipeline_tcp_client
-title Pipeline TCP Client
+﻿@startuml pipeline_http_select_decoder
+title Pipeline HTTP Select Decoder
 allowmixing
+
 label "//Ref: esp-adf/get-started/play_mp3_control//"
 label "//Ref: esp-adf/player/pipeline_http_mp3//"
 label "//Ref: esp-adf/player/pipeline_http_select_decoder//"
 
-node "TCP Server" as TCPServer  {
-    portout "TCP Source" as TCPSource
+node "HTTP Server" as HTTPServer  {
+    portout "HTTP Source" as HTTPSource
 } 
 
 node "ESP Device" as ESPDevice  {
@@ -17,31 +18,29 @@ node "ESP Device" as ESPDevice  {
         }
     }
     
-    portin "TCP Sink" as TCPSink
+    portin "HTTP Sink" as HTTPSink
 
     component "Play Pipeline" as PlayPipeline {
 
-        component TCPStream [
-            <b>tcp_stream
+        component HTTPStream [
+            <b>http_stream
             ....
             <i>.type = AUDIO_STREAM_READER
-            <i>.port = CONFIG_TCP_PORT
-            <i>.url = CONFIG_TCP_URL
             ....
-            tcp_stream_reader
-            [tcp]
+            http_stream_reader
+            [http]
             ....
             <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
             <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
         ]
 
-        component Mp3Decoder [
-            <b>mp3_decoder
+        component SelectedDecoder [
+            <b>selected_decoder
             ....
-            ...
+            <i>aac / amr / flac / mp3 / ogg / opus / wav
             ....
-            mp3_decoder
-            [mp3]
+            selected_decoder
+            [aac / amr / flac / mp3 / ogg / opus / wav]
             ....
             <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
             <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
@@ -77,11 +76,11 @@ node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink" as AnalogSink
 }
 
-TCPSource --> TCPSink           #line:black;line.bold;text:black
+HTTPSource --> HTTPSink           #line:black;line.bold;text:black
 
-TCPSink    --> TCPStream        #line:black;line.bold;text:black
-TCPStream  --> Mp3Decoder       #line:black;line.bold;text:black
-Mp3Decoder --> I2SStream        #line:black;line.bold;text:black
+HTTPSink    --> HTTPStream        #line:black;line.bold;text:black
+HTTPStream  --> SelectedDecoder   #line:black;line.bold;text:black
+SelectedDecoder --> I2SStream     #line:black;line.bold;text:black
 I2SStream  --> HALCodec         #line:black;line.bold;text:black
 HALCodec   --> AnalogSource     #line:black;line.bold;text:black
 
