@@ -3,6 +3,8 @@ title Pipeline SDCard MP3 Control
 allowmixing
 
 legend
+//Ref: esp-adf/player/pipeline_flash_tone//
+//Ref: esp-adf/player/pipeline_spiffs_mp3//
 //Ref: esp-adf/player/pipeline_play_sdcard_music//
 //Ref [sink/list]: esp-adf/player/pipeline_a2dp_sink_stream//
 //Ref [sink/list]: esp-adf/player/pipeline_sdcard_mp3_control//

@@ -1,0 +1,88 @@
+﻿@startuml pipeline_spiffs_mp3
+title Pipeline SPIFFS MP3
+allowmixing
+
+legend
+//Ref: esp-adf/player/pipeline_flash_tone//
+//Ref: esp-adf/player/pipeline_spiffs_mp3//
+//Ref: esp-adf/player/pipeline_play_sdcard_music//
+end legend
+
+node "SPIFFS" as SPIFFS {
+    portout "SPIFFS Source" as SpiffsSource
+}
+
+node "ESP Device" as ESPDevice {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>spiffs_handle" : "periph_spiffs"
+    }
+
+    portin "SPIFFS Sink" as SpiffsSink
+
+    component "Play Pipeline" as PlayPipeline {
+
+        component SpiffsStream [
+            <b>spiffs_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            ....
+            spiffs_stream_reader
+            [file / spiffs]
+            ....
+            <i>...
+        ]
+
+        component Mp3Decoder [
+            <b>mp3_decoder
+            ....
+            <i>mp3
+            ....
+            mp3_decoder
+            [dec]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+
+        component I2SStream [
+            <b>i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            ....
+            i2s_stream_writer
+            [i2s]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
+            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
+            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
+        ]
+
+        component HALCodec [
+            <b>audio_hal_ctrl_codec
+            ....
+            <i>AUDIO_HAL_CODEC_MODE_DECODE
+            ....
+            [codec_chip]
+        ]
+    }
+
+    portout "Analog Source" as AnalogSource
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink" as AnalogSink
+}
+
+SpiffsSource --> SpiffsSink     #line:black;line.bold;text:black
+
+SpiffsSink  --> SpiffsStream    #line:black;line.bold;text:black
+SpiffsStream--> Mp3Decoder      #line:black;line.bold;text:black
+Mp3Decoder  --> I2SStream       #line:black;line.bold;text:black
+I2SStream   --> HALCodec        #line:black;line.bold;text:black
+HALCodec    --> AnalogSource    #line:black;line.bold;text:black
+
+AnalogSource --> AnalogSink     #line:black;line.bold;text:black
+
+@enduml
