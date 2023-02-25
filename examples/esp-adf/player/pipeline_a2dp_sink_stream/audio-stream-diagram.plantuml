@@ -2,6 +2,11 @@
 title Pipeline A2DP SINK Stream
 allowmixing
 
+legend
+//Ref [sink/list]: esp-adf/player/pipeline_a2dp_sink_stream//
+//Ref [sink/list]: esp-adf/player/pipeline_sdcard_mp3_control//
+end legend
+
 node "BT Device" as BTDevice  {
     portout "A2DP Source" as BTDeviceA2DPSource
 } 

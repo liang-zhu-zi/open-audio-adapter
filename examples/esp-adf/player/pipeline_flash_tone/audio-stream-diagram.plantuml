@@ -4,8 +4,8 @@ allowmixing
 
 legend
 Note: Tone is in a flash partition!
-//Ref: esp-adf/player/pipeline_play_sdcard_music//
 //Ref: esp-adf/player/pipeline_flash_tone//
+//Ref: esp-adf/player/pipeline_play_sdcard_music//
 end legend
 
 node "SPI Flash" as Flash {

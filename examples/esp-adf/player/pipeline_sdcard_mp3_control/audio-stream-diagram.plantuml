@@ -1,10 +1,11 @@
-﻿@startuml pipeline_play_sdcard_music
-title Pipeline Play SDCard Music
+﻿@startuml pipeline_sdcard_mp3_control
+title Pipeline SDCard MP3 Control
 allowmixing
 
 legend
-//Ref: esp-adf/player/pipeline_flash_tone//
 //Ref: esp-adf/player/pipeline_play_sdcard_music//
+//Ref [sink/list]: esp-adf/player/pipeline_a2dp_sink_stream//
+//Ref [sink/list]: esp-adf/player/pipeline_sdcard_mp3_control//
 end legend
 
 node "SDCard" as SDCard {
@@ -12,9 +13,20 @@ node "SDCard" as SDCard {
 }
 
 node "ESP Device" as ESPDevice {
-
-    json "<b><color navy>Periph Set" as periph_set {
-        "<i>sdcard_handle" : "periph_sdcard"
+    json "<b><color navy>Periph set" as periph_set {
+        "<i>button_handle": "periph_key",
+        "<i>touch_periph": "periph_touch",
+        "<i>sdcard_handle" : "periph_sdcard",
+        "<i><color navy>input_key_service" : {
+            "CLICK_RELEASE":["[Play] Star, pause or resume", 
+                             "[Set]  Next",
+                             "[Vol+] Vol+",
+                             "[Vol-] Vol-"
+            ],
+            "PRESS":["[long Vol+] next",
+                     "[long Vol-] Previous"
+            ]
+        }
     }
 
     portin "SDCard Sink" as SdcardSink
@@ -32,29 +44,40 @@ node "ESP Device" as ESPDevice {
             <i>...
         ]
 
-        component MusicDecoder [
-            <b>music_decoder
+        component Mp3Decoder [
+            <b>mp3_decoder
             ....
-            <i>[mp3 | amr | opus | ogg | flac | wav | aac]
+            <i>[dec]
             ....
-            music_decoder
-            [dec]
+            mp3_decoder
+            [mp3]
             ....
             <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
             <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+
+        component ResampleFilter [
+            <b>rsp_filter
+            ....
+            <i>...
+            ....
+            rsp_filter
+            [filter]
+            ....
+            <i><color olive>...
         ]
 
         component I2SStream [
             <b>i2s_stream
             ....
             <i>.type = AUDIO_STREAM_WRITER
+            <i>.i2s_config.sample_rate = 48000
             ....
             i2s_stream_writer
             [i2s]
             ....
             <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
             <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
-            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
             <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
         ]
 
@@ -77,8 +100,9 @@ node "Analog Audio" as AnalogAudio  {
 SdcardSource --> SdcardSink     #line:black;line.bold;text:black
 
 SdcardSink --> FatfsStream      #line:black;line.bold;text:black
-FatfsStream--> MusicDecoder       #line:black;line.bold;text:black
-MusicDecoder --> I2SStream        #line:black;line.bold;text:black
+FatfsStream--> Mp3Decoder       #line:black;line.bold;text:black
+Mp3Decoder     --> ResampleFilter   #line:black;line.bold;text:black
+ResampleFilter --> I2SStream        #line:black;line.bold;text:black
 I2SStream  --> HALCodec         #line:black;line.bold;text:black
 HALCodec   --> AnalogSource     #line:black;line.bold;text:black
 
