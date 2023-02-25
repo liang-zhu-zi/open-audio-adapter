@@ -2,9 +2,21 @@
 title Pipeline Embed Flash Tone
 allowmixing
 
+legend
+Note: MP3/Tone is embed in program/flash!
+//Ref: esp-adf/get-started/play_mp3_control//
+//Ref: esp-adf/player/pipeline_embed_flash_tone//
+end legend
+
 node "ESP Device" as ESPDevice {
 
     component "Play Pipeline" as PlayPipeline {
+        component GEmbedTone [
+            <b>g_embed_tone
+            ....
+            <i><color olive>_binary_alarm_mp3_start
+            <i><color olive>_binary_new_message_mp3_start
+        ]
 
         component EmbedFlashStream [
             <b>embed_flash_stream
@@ -59,6 +71,7 @@ node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink" as AnalogSink
 }
 
+GEmbedTone -[dashed]-> EmbedFlashStream
 EmbedFlashStream --> Mp3Decoder #line:black;line.bold;text:black
 Mp3Decoder --> I2SStream        #line:black;line.bold;text:black
 I2SStream  --> HALCodec         #line:black;line.bold;text:black

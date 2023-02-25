@@ -2,18 +2,33 @@
 title Pipeline Flash Tone
 allowmixing
 
+legend
+Note: Tone is in a flash partition!
+//Ref: esp-adf/player/pipeline_play_sdcard_music//
+//Ref: esp-adf/player/pipeline_flash_tone//
+end legend
+
+node "SPI Flash" as Flash {
+
+    portin "---xxx--" as nothing
+
+    component FlashTone [
+        <b>Flash Partition
+        ....
+        <i>.name = flash_tone
+        <i>.type = data
+        ....
+        [flash]
+    ]
+
+    portout "Flash Source" as FlashSource
+}
+
 node "ESP Device" as ESPDevice {
 
-    component "Play Pipeline" as PlayPipeline {
+    portin "Flash Sink" as FlashSink
 
-        component FlashTone [
-            <b>Flash Partition
-            ....
-            <i>.name = flash_tone
-            <i>.type = data
-            ....
-            [flash]
-        ]
+    component "Play Pipeline" as PlayPipeline {
 
         component ToneStream [
             <b>tone_stream
@@ -68,7 +83,10 @@ node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink" as AnalogSink
 }
 
-FlashTone  --> ToneStream
+FlashTone  --> FlashSource      #line:black;line.bold;text:black
+FlashSource --> FlashSink       #line:black;line.bold;text:black
+
+FlashSink  --> ToneStream       #line:black;line.bold;text:black
 ToneStream --> Mp3Decoder       #line:black;line.bold;text:black
 Mp3Decoder --> I2SStream        #line:black;line.bold;text:black
 I2SStream  --> HALCodec         #line:black;line.bold;text:black

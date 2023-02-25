@@ -2,6 +2,11 @@
 title Play MP3 Control
 allowmixing
 
+legend
+Note: MP3 is embed in program/flash!
+//Ref: esp-adf/get-started/play_mp3_control//
+//Ref: esp-adf/player/pipeline_embed_flash_tone//
+end legend
 
 node "ESP Device" as ESPDevice  {
 
@@ -20,7 +25,12 @@ node "ESP Device" as ESPDevice  {
     }
 
     component "Play Pipeline" as PlayPipeline {
-        component "mp3_music_read_cb()" as mp3_music_read_cb
+        component BinaryData [
+            <b>Binary Data
+            ....
+            <i><color olive>_binary_..._start
+            <i><color olive>_binary_..._end
+        ]
 
         component Mp3Decoder [
             <b>mp3_decoder
@@ -62,7 +72,7 @@ node "Analog Audio" as AnalogAudio  {
 }
 
 
-mp3_music_read_cb --> Mp3Decoder      #line:black;line.bold;text:black
+BinaryData  --> Mp3Decoder      #line:black;line.bold;text:black : mp3_music_read_cb()
 Mp3Decoder  --> I2SStream       #line:black;line.bold;text:black
 I2SStream   --> HALCodec        #line:black;line.bold;text:black
 HALCodec    --> AnalogSource    #line:black;line.bold;text:black

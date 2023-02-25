@@ -2,10 +2,12 @@
 title Pipeline HTTP MP3
 allowmixing
 
-label "//Ref: esp-adf/get-started/play_mp3_control//"
-label "//Ref: esp-adf/player/pipeline_http_mp3//"
-label "//Ref: esp-adf/player/pipeline_http_select_decoder//"
-label "//Ref: esp-adf/player/pipeline_living_stream//"
+legend
+//Ref: esp-adf/get-started/play_mp3_control//
+//Ref: esp-adf/player/pipeline_http_mp3//
+//Ref: esp-adf/player/pipeline_http_select_decoder//
+//Ref: esp-adf/player/pipeline_living_stream//
+end legend
 
 node "HTTP Server" as HTTPServer  {
     portout "HTTP Source" as HTTPSource
