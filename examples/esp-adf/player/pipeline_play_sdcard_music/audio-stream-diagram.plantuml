@@ -4,6 +4,7 @@ allowmixing
 
 legend
 //Ref: esp-adf/player/pipeline_flash_tone//
+//Ref: esp-adf/player/pipeline_spiffs_mp3//
 //Ref: esp-adf/player/pipeline_play_sdcard_music//
 end legend
 
