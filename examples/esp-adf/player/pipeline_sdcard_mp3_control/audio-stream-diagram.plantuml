@@ -58,7 +58,7 @@ node "ESP Device" as ESPDevice {
             <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
         ]
 
-        component ResampleFilter [
+        component RspFilter [
             <b>rsp_filter
             ....
             <i>...
@@ -99,15 +99,15 @@ node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink" as AnalogSink
 }
 
-SdcardSource --> SdcardSink     #line:black;line.bold;text:black
+SdcardSource --> SdcardSink     #line:black;line.dotted;text:black
 
-SdcardSink --> FatfsStream      #line:black;line.bold;text:black
+SdcardSink --> FatfsStream      #line:black;line.dotted;text:black
 FatfsStream--> Mp3Decoder       #line:black;line.bold;text:black
-Mp3Decoder     --> ResampleFilter   #line:black;line.bold;text:black
-ResampleFilter --> I2SStream        #line:black;line.bold;text:black
-I2SStream  --> HALCodec         #line:black;line.bold;text:black
-HALCodec   --> AnalogSource     #line:black;line.bold;text:black
+Mp3Decoder --> RspFilter        #line:black;line.bold;text:black
+RspFilter  --> I2SStream        #line:black;line.bold;text:black
+I2SStream  --> HALCodec         #line:black;line.dotted;text:black
+HALCodec   --> AnalogSource     #line:black;line.dotted;text:black
 
-AnalogSource --> AnalogSink     #line:black;line.bold;text:black
+AnalogSource --> AnalogSink     #line:black;line.dotted;text:black
 
 @enduml

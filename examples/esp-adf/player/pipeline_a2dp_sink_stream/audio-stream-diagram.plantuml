@@ -84,14 +84,14 @@ node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink" as AnalogSink
 }
 
-BTDeviceA2DPSource --> BTA2DPSink   #line:black;line.bold;text:black
+BTDeviceA2DPSource --> BTA2DPSink   #line:black;line.dotted;text:black
 
-BTA2DPSink  --> BTController    #line:black;line.bold;text:black
-BTController--> A2DPStream      #line:black;line.bold;text:black
+BTA2DPSink  --> BTController    #line:black;line.dotted;text:black
+BTController--> A2DPStream      #line:black;line.dotted;text:black
 A2DPStream  --> I2SStream       #line:black;line.bold;text:black
-I2SStream   --> HALCodec        #line:black;line.bold;text:black
-HALCodec    --> AnalogSource    #line:black;line.bold;text:black
+I2SStream   --> HALCodec        #line:black;line.dotted;text:black
+HALCodec    --> AnalogSource    #line:black;line.dotted;text:black
 
-AnalogSource --> AnalogSink     #line:black;line.bold;text:black
+AnalogSource --> AnalogSink     #line:black;line.dotted;text:black
 
 @enduml

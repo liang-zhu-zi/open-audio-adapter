@@ -79,14 +79,14 @@ node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink" as AnalogSink
 }
 
-HTTPSource --> HTTPSink           #line:black;line.bold;text:black
+HTTPSource --> HTTPSink         #line:black;line.dotted;text:black
 
-HTTPSink    --> HTTPStream        #line:black;line.bold;text:black
-HTTPStream  --> Mp3Decoder       #line:black;line.bold;text:black
+HTTPSink    --> HTTPStream      #line:black;line.dotted;text:black
+HTTPStream  --> Mp3Decoder      #line:black;line.bold;text:black
 Mp3Decoder --> I2SStream        #line:black;line.bold;text:black
-I2SStream  --> HALCodec         #line:black;line.bold;text:black
-HALCodec   --> AnalogSource     #line:black;line.bold;text:black
+I2SStream  --> HALCodec         #line:black;line.dotted;text:black
+HALCodec   --> AnalogSource     #line:black;line.dotted;text:black
 
-AnalogSource --> AnalogSink     #line:black;line.bold;text:black
+AnalogSource --> AnalogSink     #line:black;line.dotted;text:black
 
 @enduml

@@ -75,14 +75,14 @@ node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink" as AnalogSink
 }
 
-SpiffsSource --> SpiffsSink     #line:black;line.bold;text:black
+SpiffsSource --> SpiffsSink     #line:black;line.dotted;text:black
 
-SpiffsSink  --> SpiffsStream    #line:black;line.bold;text:black
+SpiffsSink  --> SpiffsStream    #line:black;line.dotted;text:black
 SpiffsStream--> Mp3Decoder      #line:black;line.bold;text:black
 Mp3Decoder  --> I2SStream       #line:black;line.bold;text:black
-I2SStream   --> HALCodec        #line:black;line.bold;text:black
-HALCodec    --> AnalogSource    #line:black;line.bold;text:black
+I2SStream   --> HALCodec        #line:black;line.dotted;text:black
+HALCodec    --> AnalogSource    #line:black;line.dotted;text:black
 
-AnalogSource --> AnalogSink     #line:black;line.bold;text:black
+AnalogSource --> AnalogSink     #line:black;line.dotted;text:black
 
 @enduml

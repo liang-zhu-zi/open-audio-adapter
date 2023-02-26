@@ -1,22 +1,22 @@
-﻿@startuml pipeline_flash_tone
-title Pipeline Flash Tone
+﻿@startuml pipeline_tts_stream
+title Pipeline TTS Stream
 allowmixing
 
 legend
 Note: Tone is in a flash partition!
 //Ref: esp-adf/player/pipeline_flash_tone//
-//Ref: esp-adf/player/pipeline_play_sdcard_music//
 end legend
 
 node "SPI Flash" as Flash {
 
     portin "---xxx--" as nothing
 
-    component FlashTone [
-        <b>Flash Partition
+    component VoiceData [
+        <b>Voice Data
         ....
-        <i>.name = flash_tone
-        <i>.type = data
+        <i>.Name = voice_data
+        <i>.Type = data
+        <i>.SubType = fat
         ....
         [flash]
     ]
@@ -30,33 +30,25 @@ node "ESP Device" as ESPDevice {
 
     component "Play Pipeline" as PlayPipeline {
 
-        component ToneStream [
-            <b>tone_stream
+        component TTSStream [
+            <b>tts_stream
             ....
             <i>.type = AUDIO_STREAM_READER
             ....
-            tone_stream_reader
-            [tone]
+            <i>set_strings(CHINESE_STRINGS)
+            ....
+            tts_stream_reader
+            [tts]
             ....
             <i>...
-        ]
-
-        component Mp3Decoder [
-            <b>mp3_decoder
-            ....
-            ...
-            ....
-            mp3_decoder
-            [mp3]
-            ....
-            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
-            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
         ]
 
         component I2SStream [
             <b>i2s_stream
             ....
             <i>.type = AUDIO_STREAM_WRITER
+            <i>.i2s_config.sample_rate = 16000
+            <i>.i2s_config.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT
             ....
             i2s_stream_writer
             [i2s]
@@ -83,12 +75,11 @@ node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink" as AnalogSink
 }
 
-FlashTone  --> FlashSource      #line:black;line.dotted;text:black
-FlashSource --> FlashSink       #line:black;line.dotted;text:black
+VoiceData  --> FlashSource      #line:black;line.dotted;text:black
+FlashSource--> FlashSink        #line:black;line.dotted;text:black
 
-FlashSink  --> ToneStream       #line:black;line.dotted;text:black
-ToneStream --> Mp3Decoder       #line:black;line.bold;text:black
-Mp3Decoder --> I2SStream        #line:black;line.bold;text:black
+FlashSink  --> TTSStream        #line:black;line.dotted;text:black
+TTSStream  --> I2SStream        #line:black;line.bold;text:black
 I2SStream  --> HALCodec         #line:black;line.dotted;text:black
 HALCodec   --> AnalogSource     #line:black;line.dotted;text:black
 
