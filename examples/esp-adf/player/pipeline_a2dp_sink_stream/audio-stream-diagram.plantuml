@@ -4,6 +4,8 @@ allowmixing
 
 legend
 //Ref [sink/list]: esp-adf/player/pipeline_a2dp_sink_stream//
+//Ref [sink/list]: esp-adf/player/pipeline_a2dp_source_stream//
+//Ref [sink/list]: esp-adf/player/pipeline_hfp_stream//
 //Ref [sink/list]: esp-adf/player/pipeline_sdcard_mp3_control//
 end legend
 
@@ -31,15 +33,16 @@ node "ESP Device" as ESPDevice  {
 
     portin "A2DP Sink" as BTA2DPSink
 
+    component BTController [
+        <b>esp_bt_controller
+        ....
+        <i>ESP_BT_MODE_CLASSIC_BT
+        ....
+        board_handle
+        [Bluetooth]
+    ]
+
     component "Play Pipeline" as PlayPipeline {
-        component BTController [
-            <b>esp_bt_controller
-            ....
-            <i>ESP_BT_MODE_CLASSIC_BT
-            ....
-            board_handle
-            [Bluetooth]
-        ]
 
         component A2DPStream [
             <b>a2dp_stream
@@ -67,15 +70,15 @@ node "ESP Device" as ESPDevice  {
             <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
             <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
         ]
-
-        component HALCodec [
-            <b>audio_hal_ctrl_codec
-            ....
-            <i>AUDIO_HAL_CODEC_MODE_DECODE
-            ....
-            [codec_chip]
-        ]
     }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_DECODE
+        ....
+        [codec_chip]
+    ]
 
     portout "Analog Source" as AnalogSource
 } 

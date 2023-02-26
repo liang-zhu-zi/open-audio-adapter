@@ -54,15 +54,15 @@ node "ESP Device" as ESPDevice {
             <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
             <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
         ]
-
-        component HALCodec [
-            <b>audio_hal_ctrl_codec
-            ....
-            <i><color red>AUDIO_HAL_CODEC_MODE_BOTH?
-            ....
-            [codec_chip]
-        ]
     }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i><color red>AUDIO_HAL_CODEC_MODE_BOTH?
+        ....
+        [codec_chip]
+    ]
 
     portout "Analog Source" as AnalogSource
 } 

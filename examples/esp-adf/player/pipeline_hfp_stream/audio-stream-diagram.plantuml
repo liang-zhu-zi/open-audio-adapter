@@ -1,0 +1,124 @@
+﻿@startuml pipeline_hfp_stream
+title Pipeline HFP Stream
+allowmixing
+
+legend
+//Ref [sink/list]: esp-adf/player/pipeline_a2dp_sink_stream//
+//Ref [sink/list]: esp-adf/player/pipeline_a2dp_source_stream//
+//Ref [sink/list]: esp-adf/player/pipeline_hfp_stream//
+end legend
+
+node "BT Device" as BTDevice  {
+    portin  "HFP Sink"   as BTDeviceHFPSink
+    portout "HFP Source" as BTDeviceHFPSource
+} 
+
+node "ESP Device" as ESPDevice  {
+    json "<b><color navy>Periph set" as periph_set {
+        "": ""
+    }
+
+    portin "HFP Source & HFP Sink" as ESPHFPSourceSink
+
+    component BTController [
+        <b>esp_bt_controller
+        ....
+        <i>ESP_BT_MODE_CLASSIC_BT
+        ....
+        board_handle
+        [Bluetooth]
+    ]
+
+    component "Pipeline In" as PipelineIn {
+        component HFPInStream [
+            <b>hfp_in_stream
+            ....
+            <i>.type = INCOMING_STREAM
+            ....
+            hfp_in_stream
+            [incoming]
+            ....
+            <i>...
+        ]
+
+        component I2SStreamWriter [
+            <b>i2s_stream_writer
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>.i2s_config.sample_rate = g_hfp_audio_rate (8000 or 16000)
+            <i>.i2s_config.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT
+            ....
+            i2s_stream_writer
+            [i2s_writer]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
+            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED
+        ]
+    }
+
+    component "Pipeline Out" as PipelineOut {
+        component HFPOutStream [
+            <b>hfp_out_stream
+            ....
+            <i>.type = OUTGOING_STREAM
+            ....
+            hfp_out_stream
+            [outgoing]
+            ....
+            <i>...
+        ]
+
+        component I2SStreamReader [
+            <b>i2s_stream_reader
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>.i2s_config.sample_rate = g_hfp_audio_rate (8000 or 16000)
+            <i>.i2s_config.channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT
+            ....
+            i2s_stream_reader
+            [i2s_reader]
+            ....
+            <i>...
+        ]
+    }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_BOTH
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Source & Analog Sink" as ESPAnalogSourceSink
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink" as AnalogSink
+    portout "Analog Source" as AnalogSource
+}
+
+BTDeviceHFPSource --> ESPHFPSourceSink   #line:black;line.dotted;text:black
+
+ESPHFPSourceSink --> BTController        #line:black;line.dotted;text:black
+BTController     --> HFPInStream         #line:black;line.dotted;text:black
+HFPInStream      --> I2SStreamWriter     #line:black;line.bold;text:black
+I2SStreamWriter  --> HALCodec            #line:black;line.dotted;text:black
+HALCodec         --> ESPAnalogSourceSink #line:black;line.dotted;text:black
+
+ESPAnalogSourceSink --> AnalogSink       #line:black;line.dotted;text:black
+
+
+
+BTDeviceHFPSink  <-- ESPHFPSourceSink    #line:red;line.dotted;text:red
+
+ESPHFPSourceSink <-- BTController        #line:red;line.dotted;text:red
+BTController     <-- HFPOutStream        #line:red;line.dotted;text:red
+HFPOutStream     <-- I2SStreamReader     #line:red;line.bold;text:red
+I2SStreamReader  <-- HALCodec            #line:red;line.dotted;text:black
+HALCodec         <-- ESPAnalogSourceSink #line:red;line.dotted;text:black
+
+ESPAnalogSourceSink <-- AnalogSource      #line:red;line.dotted;text:black
+
+@enduml
