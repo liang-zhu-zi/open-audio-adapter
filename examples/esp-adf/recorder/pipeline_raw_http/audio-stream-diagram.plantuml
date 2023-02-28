@@ -1,0 +1,85 @@
+﻿@startuml pipeline_raw_http
+title Pipeline RAW HTTP
+allowmixing
+
+legend
+//Ref: esp-adf/get-started/play_mp3_control//
+//Ref: esp-adf/player/pipeline_http_mp3//
+//Ref: esp-adf/player/pipeline_http_select_decoder//
+//Ref: esp-adf/player/pipeline_living_stream//
+end legend
+
+node "HTTP Server" as HTTPServer  {
+    portout "HTTP Sink" as HTTPSink
+} 
+
+node "ESP Device" as ESPDevice  {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>wifi_handle" : {
+            "periph_wifi" : [".ssid", ".password"]
+        },
+        "<i>button_handle": "periph_key",
+        "<i>touch_periph": "periph_touch",
+        "<i><color navy>input_key_service" : {
+            "_ACTION_CLICK":["[Mode] Exit", 
+                             "[Rec]  Resume"
+            ],
+            "_ACTION_CLICK_RELEASESS":"[Rec] Stop"
+        }
+    }    
+    
+    portin "HTTP Source" as HTTPSource
+
+    component "Record Pipeline" as RecordPipeline {
+
+        component HTTPStream [
+            <b>http_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            ....
+            http_stream_writer
+            [http]
+            ....
+            <i><color olive>...
+        ]
+
+        component I2SStream [
+            <b>i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>.out_rb_size = 16 * 1024
+            <i>.i2s_port = CODEC_ADC_I2S_PORT (0)
+            ....
+            i2s_stream_reader
+            [i2s]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_ENCODE
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Sink" as AnalogSink
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Source" as AnalogSource
+}
+
+HTTPSink   <-- HTTPSource   #line:red;line.dotted;text:red
+
+HTTPSource <-- HTTPStream   #line:red;line.dotted;text:red
+HTTPStream <-- I2SStream    #line:red;line.bold;text:red
+I2SStream  <-- HALCodec     #line:red;line.dotted;text:red
+HALCodec   <-- AnalogSink   #line:red;line.dotted;text:red
+
+AnalogSink <-- AnalogSource #line:red;line.dotted;text:red
+
+@enduml
