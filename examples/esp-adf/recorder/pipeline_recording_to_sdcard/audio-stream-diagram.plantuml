@@ -1,0 +1,93 @@
+﻿@startuml pipeline_recording_to_sdcard
+title Pipeline Recording to SDCard
+allowmixing
+
+legend
+//Ref: esp-adf/player/pipeline_raw_http//
+//Ref: esp-adf/player/pipeline_recording_to_sdcard//
+//Ref: esp-adf/player/pipeline_play_sdcard_music//
+end legend
+
+node "SDCard" as SDCard {
+    portout "SDCard Sink" as SdcardSink
+}
+
+node "ESP Device" as ESPDevice {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>sdcard_handle" : "periph_sdcard"
+    }
+
+    portin "SDCard Source" as SdcardSource
+
+    component "Play Pipeline" as PlayPipeline {
+
+        component FatfsStream [
+            <b>fatfs_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            ....
+            _set_uri("/sdcard/rec....")
+            ....
+            fatfs_stream_writer
+            [file / fatfs]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
+            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
+            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED ||
+            <i><color olive>msg.data == AEL_STATUS_ERROR_OPEN
+        ]
+
+        component AudioDecoder [
+            <b>audio_encoder
+            ....
+            <i>[wav | opus | Wamr | amr]
+            ....
+            audio_encoder
+            [enc]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+
+        component I2SStream [
+            <b>i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>.i2s_config.sample_rate = 8000 or 16000
+            <i>.i2s_config.channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT
+            ....
+            i2s_stream_reader
+            [i2s]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_ENCODE
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Sink" as AnalogSink
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Source" as AnalogSource
+}
+
+SdcardSink <-- SdcardSource     #line:red;line.dotted;text:red
+
+SdcardSource <-- FatfsStream    #line:red;line.dotted;text:red
+FatfsStream  <-- AudioDecoder   #line:red;line.bold;text:red
+AudioDecoder <-- I2SStream      #line:red;line.bold;text:red
+I2SStream  <-- HALCodec         #line:red;line.dotted;text:red
+HALCodec   <-- AnalogSink       #line:red;line.dotted;text:red
+
+AnalogSink <-- AnalogSource     #line:red;line.dotted;text:red
+
+@enduml

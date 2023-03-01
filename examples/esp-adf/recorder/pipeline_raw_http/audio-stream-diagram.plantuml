@@ -3,10 +3,11 @@ title Pipeline RAW HTTP
 allowmixing
 
 legend
-//Ref: esp-adf/get-started/play_mp3_control//
+//Ref: esp-adf/player/pipeline_raw_http//
 //Ref: esp-adf/player/pipeline_http_mp3//
 //Ref: esp-adf/player/pipeline_http_select_decoder//
 //Ref: esp-adf/player/pipeline_living_stream//
+//Ref: esp-adf/player/pipeline_recording_to_sdcard//
 end legend
 
 node "HTTP Server" as HTTPServer  {
