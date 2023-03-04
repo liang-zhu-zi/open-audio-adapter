@@ -6,6 +6,7 @@ legend
 //Ref: esp-adf/player/pipeline_raw_http//
 //Ref: esp-adf/player/pipeline_recording_to_sdcard//
 //Ref: esp-adf/player/pipeline_play_sdcard_music//
+//Ref: esp-adf/player/pipeline_wav_amr_sdcard//
 end legend
 
 node "SDCard" as SDCard {
@@ -39,7 +40,7 @@ node "ESP Device" as ESPDevice {
             <i><color olive>msg.data == AEL_STATUS_ERROR_OPEN
         ]
 
-        component AudioDecoder [
+        component AudioEncoder [
             <b>audio_encoder
             ....
             <i>[wav | opus | Wamr | amr]
@@ -83,8 +84,8 @@ node "Analog Audio" as AnalogAudio  {
 SdcardSink <-- SdcardSource     #line:red;line.dotted;text:red
 
 SdcardSource <-- FatfsStream    #line:red;line.dotted;text:red
-FatfsStream  <-- AudioDecoder   #line:red;line.bold;text:red
-AudioDecoder <-- I2SStream      #line:red;line.bold;text:red
+FatfsStream  <-- AudioEncoder   #line:red;line.bold;text:red
+AudioEncoder <-- I2SStream      #line:red;line.bold;text:red
 I2SStream  <-- HALCodec         #line:red;line.dotted;text:red
 HALCodec   <-- AnalogSink       #line:red;line.dotted;text:red
 
