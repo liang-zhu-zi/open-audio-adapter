@@ -1,0 +1,147 @@
+﻿@startuml element_wav_amr_sdcard
+title Element WAV AMR SDCard
+allowmixing
+
+legend
+//Ref: esp-adf/player/element_wav_amr_sdcard//
+//Ref: esp-adf/player/pipeline_wav_amr_sdcard//
+end legend
+
+node "SDCard" as SDCard {
+    portout "SDCard Sink" as SdcardSink
+}
+
+node "ESP Device" as ESPDevice {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>sdcard_handle" : "periph_sdcard"
+    }
+
+    portin "SDCard Source" as SdcardSource
+
+    component WavFatfsStream [
+        <b>wav_fatfs_stream_writer
+        ....
+        <i>.type = AUDIO_STREAM_WRITER
+        ....
+        _set_uri("/sdcard/rec_out.wav")
+        ....
+        wav_fatfs_stream_writer
+        [wav_file / fatfs]
+        ....
+        <i><color olive>...
+    ]
+
+    card ringbuf02 [
+        <b>ringbuf02
+        ....
+        ring buffer
+    ]
+
+    component WavDecoder [
+        <b>wav_encoder
+        ....
+        <i>[wav]
+        ....
+        wav_encoder
+        [enc]
+        ....
+        <i><color olive>...
+    ]
+
+    card ringbuf01 [
+        <b>ringbuf01
+        ....
+        ring buffer
+    ]
+
+    component I2SStream [
+        <b>i2s_stream
+        ....
+        <i>.type = AUDIO_STREAM_READER
+        <i>.i2s_config.sample_rate = 8000 or 16000
+        <i>.multi_out_num = 1
+        <i>.task_core = 1
+        <i>.i2s_config.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT
+        ....
+        _set_multi_output_ringbuf(..., ringbuf11, ...)
+        ....
+        i2s_stream_reader
+        [i2s]
+        ....
+        <i><color olive>...
+    ]
+
+
+    component AmrFatfsStream [
+        <b>amr_fatfs_stream_writer
+        ....
+        <i>.type = AUDIO_STREAM_WRITER
+        <i>.task_core = 1
+        ....
+        _set_uri("/sdcard/rec_out.amr") || 
+        _set_uri("/sdcard/rec_out.Wamr")
+        ....
+        amr_fatfs_stream_writer
+        [amr_file / fatfs]
+        ....
+        <i><color olive>...
+    ]
+
+    card ringbuf12 [
+        <b>ringbuf12
+        ....
+        ring buffer
+    ]
+
+    component AmrEncoder [
+        <b>amr_encoder
+        ....
+        <i>[Wamr | amr]
+        ....
+        amr_encoder
+        [enc]
+        ....
+        <i><color olive>...
+    ]
+
+    card ringbuf11 [
+        <b>ringbuf11
+        ....
+        ring buffer
+    ]
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_ENCODE
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Sink" as AnalogSink
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Source" as AnalogSource
+}
+
+SdcardSink <-- SdcardSource      #line:red;line.dotted;text:red
+
+SdcardSource  <-- WavFatfsStream #line:red;line.dotted;text:red
+WavFatfsStream<-- ringbuf02      #line:red;line.bold;text:red
+ringbuf02     <-- WavDecoder     #line:red;line.bold;text:red
+WavDecoder    <-- ringbuf01      #line:red;line.bold;text:red
+ringbuf01     <-- I2SStream      #line:red;line.bold;text:red
+I2SStream  <-- HALCodec          #line:red;line.dotted;text:red
+HALCodec   <-- AnalogSink        #line:red;line.dotted;text:red
+
+SdcardSource  <-- AmrFatfsStream #line:red;line.dotted;text:red
+AmrFatfsStream<-- ringbuf12      #line:red;line.bold;text:red
+ringbuf12     <-- AmrEncoder     #line:red;line.bold;text:red
+AmrEncoder    <-- ringbuf11      #line:red;line.bold;text:red
+ringbuf11     <-- I2SStream      #line:red;line.dotted;text:red
+
+AnalogSink <-- AnalogSource     #line:red;line.dotted;text:red
+
+@enduml
