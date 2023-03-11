@@ -1,5 +1,5 @@
-﻿@startuml pipeline_baidu_speech_mp3
-title Pipeline Baidu Speech MP3
+﻿@startuml pipeline_aws_polly_mp3
+title Pipeline AWS Polly MP3
 allowmixing
 
 legend
@@ -10,7 +10,7 @@ legend
 //Ref: esp-adf/cloud_services/pipeline_aws_polly_mp3//
 end legend
 
-node "Baidu Speech \n(HTTP Server)" as BaiduSpeech  {
+node "AWS Polly \n(HTTP Server)" as AWSPolly  {
     portout "HTTP Source" as HTTPSource
 } 
 
@@ -31,7 +31,7 @@ node "ESP Device" as ESPDevice  {
             ....
             <i>.type = AUDIO_STREAM_READER
             <i>.event_handle = _http_stream_event_handle
-            <i>_set_uri(..., BAIDU_TTS_ENDPOINT)
+            <i>_set_uri(..., AWS_POLLY_ENDPOINT)
             ....
             http_stream_reader
             [http]
@@ -57,7 +57,7 @@ node "ESP Device" as ESPDevice  {
             ....
             <i>.type = AUDIO_STREAM_WRITER
             <i>.i2s_config.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT
-            <i>_set_clk(..., 16000, 16, 1)???
+            <i>_set_clk(..., 22050, 16, 1)???
             ....
             i2s_stream_writer
             [i2s]
