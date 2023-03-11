@@ -29,7 +29,11 @@ node "ESP Device" as ESPDevice  {
         "<i>wifi_handle" : {
             "periph_wifi" : [".ssid", ".password"]
         },
-        "<i>wifi_handle" : "periph_button",
+        "<i>button_handle" : {
+            "REC <PRESSED>" : "tts_stop(), sr_start()",
+            "REC <RELEASE>" : "sr_stop(), translate(), tts_start()",
+            "MODE" : "break"
+        },
         "<i>led_handle" : "periph_led"
     }
     
