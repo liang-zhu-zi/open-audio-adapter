@@ -1,0 +1,152 @@
+﻿@startuml google_translate_device
+title Google Translate Device
+allowmixing
+
+legend
+//Ref: esp-adf/player/pipeline_http_mp3//
+//Ref: esp-adf/player/pipeline_http_select_decoder//
+//Ref: esp-adf/player/pipeline_living_stream//
+//Ref: esp-adf/cloud_services/pipeline_baidu_speech_mp3//
+//Ref: esp-adf/cloud_services/pipeline_aws_polly_mp3//
+//Ref: esp-adf/cloud_services/google_translate_device//
+end legend
+
+node "Google TTS \n(HTTP Server)" as GoogleTTS  {
+    portout "HTTP Source" as TTSHTTPSource
+}
+
+node "Google Translate \n(HTTP Server)" as GoogleTranslate  {
+    portout "HTTP Source" as TTSHTTPSource
+}
+
+node "Google SR \n(HTTP Server)" as GoogleSR  {
+    portout "HTTP Sink" as SRHTTPSink
+} 
+
+node "ESP Device" as ESPDevice  {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>wifi_handle" : {
+            "periph_wifi" : [".ssid", ".password"]
+        },
+        "<i>wifi_handle" : "periph_button",
+        "<i>led_handle" : "periph_led"
+    }
+    
+    portin "HTTP Source | HTTP Sink" as HTTPSourceSink  
+
+    component "TTS Pipeline" as TTSPipeline {
+
+        component HTTPStreamReader [
+            <b>http_stream_reader
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>.event_handle = _http_stream_reader_event_handle
+            <i>.user_data = tts
+            <i>.task_stack = GOOGLE_TTS_TASK_STACK
+            <i>_set_uri(..., GOOGLE_TTS_ENDPOINT...)
+            ....
+            http_stream_reader
+            [tts_http]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+
+        component Mp3Decoder [
+            <b>mp3_decoder
+            ....
+            ...
+            ....
+            mp3_decoder
+            [tts_mp3]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+
+        component I2SStreamWriter [
+            <b>i2s_stream_writer
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>.i2s_config.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT
+            <i>_set_clk(..., 16000, 16, 1)
+            ....
+            i2s_stream_writer
+            [tts_i2s]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
+            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
+            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
+        ]
+    }
+
+
+    component "SR Pipeline" as SRPipeline {
+
+        component HTTPStreamWriter [
+            <b>http_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>.event_handle = _http_stream_writer_event_handle
+            <i>.user_data = sr
+            <i>.task_stack = GOOGLE_SR_TASK_STACK
+            ....
+            http_stream_writer
+            [sr_http]
+            ....
+            <i><color olive>...
+        ]
+
+        component I2SStreamReader [
+            <b>i2s_stream_reader
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>_set_clk(..., 16000, 16, 1)
+            ....
+            i2s_stream_reader
+            [sr_i2s]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_BOTH
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Source | Analog Sink" as AnalogSourceSink
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink | Analog Source" as AnalogSinkSource
+}
+
+
+SRHTTPSink   <-- HTTPSourceSink   #line:red;line.dotted;text:red
+
+HTTPSourceSink <-- HTTPStreamWriter   #line:red;line.dotted;text:red
+HTTPStreamWriter <-- I2SStreamReader    #line:red;line.bold;text:red
+I2SStreamReader  <-- HALCodec     #line:red;line.dotted;text:red
+HALCodec   <-- AnalogSourceSink   #line:red;line.dotted;text:red
+
+AnalogSourceSink <-- AnalogSinkSource #line:red;line.dotted;text:red
+
+
+
+TTSHTTPSource --> HTTPSourceSink         #line:black;line.dotted;text:black
+
+HTTPSourceSink    --> HTTPStreamReader      #line:black;line.dotted;text:black
+HTTPStreamReader  --> Mp3Decoder      #line:black;line.bold;text:black
+Mp3Decoder --> I2SStreamWriter  #line:black;line.bold;text:black
+I2SStreamWriter  --> HALCodec   #line:black;line.dotted;text:black
+HALCodec   --> AnalogSourceSink     #line:black;line.dotted;text:black
+
+AnalogSourceSink --> AnalogSinkSource     #line:black;line.dotted;text:black
+
+@enduml
