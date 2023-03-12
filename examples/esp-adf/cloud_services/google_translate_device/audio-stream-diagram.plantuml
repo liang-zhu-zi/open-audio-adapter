@@ -11,17 +11,17 @@ legend
 //Ref: esp-adf/cloud_services/google_translate_device//
 end legend
 
-node "Google TTS \n(HTTP Server)" as GoogleTTS  {
-    portout "HTTP Source" as TTSHTTPSource
+node "Google Translate \n(HTTP Server) (2)" as GoogleTranslate  {
+    portout " " as TranslateHTTPSource
 }
 
-node "Google Translate \n(HTTP Server)" as GoogleTranslate  {
-    portout "HTTP Source" as TTSHTTPSource
-}
-
-node "Google SR \n(HTTP Server)" as GoogleSR  {
+node "Google SR \n(HTTP Server) (1)" as GoogleSR  {
     portout "HTTP Sink" as SRHTTPSink
 } 
+
+node "Google TTS \n(HTTP Server) (3)" as GoogleTTS  {
+    portout "HTTP Source" as TTSHTTPSource
+}
 
 node "ESP Device" as ESPDevice  {
 
@@ -30,16 +30,16 @@ node "ESP Device" as ESPDevice  {
             "periph_wifi" : [".ssid", ".password"]
         },
         "<i>button_handle" : {
-            "REC <PRESSED>" : "tts_stop(), sr_start()",
-            "REC <RELEASE>" : "sr_stop(), translate(), tts_start()",
+            "REC <PRESSED>" : ["google_tts_stop()", "google_sr_start()"],
+            "REC <RELEASE>" : ["google_sr_stop()", "google_translate()", "google_tts_start()"],
             "MODE" : "break"
         },
         "<i>led_handle" : "periph_led"
     }
     
-    portin "HTTP Source | HTTP Sink" as HTTPSourceSink  
+    portin "HTTP Source | HTTP Sink" as HTTPSourceSink
 
-    component "TTS Pipeline" as TTSPipeline {
+    component "TTS Pipeline \n(google_tts)" as TTSPipeline {
 
         component HTTPStreamReader [
             <b>http_stream_reader
@@ -86,8 +86,9 @@ node "ESP Device" as ESPDevice  {
         ]
     }
 
+    component "google_translate" as ESP32GoogleTranslate
 
-    component "SR Pipeline" as SRPipeline {
+    component "SR Pipeline \n(google_sr)" as SRPipeline {
 
         component HTTPStreamWriter [
             <b>http_stream
@@ -132,25 +133,30 @@ node "Analog Audio" as AnalogAudio  {
 }
 
 
-SRHTTPSink   <-- HTTPSourceSink   #line:red;line.dotted;text:red
+SRHTTPSink   <-- HTTPSourceSink         #line:red;line.dotted;text:red
 
-HTTPSourceSink <-- HTTPStreamWriter   #line:red;line.dotted;text:red
+HTTPSourceSink <-- HTTPStreamWriter     #line:red;line.dotted;text:red
 HTTPStreamWriter <-- I2SStreamReader    #line:red;line.bold;text:red
-I2SStreamReader  <-- HALCodec     #line:red;line.dotted;text:red
-HALCodec   <-- AnalogSourceSink   #line:red;line.dotted;text:red
+I2SStreamReader  <-- HALCodec           #line:red;line.dotted;text:red
+HALCodec   <-- AnalogSourceSink         #line:red;line.dotted;text:red
 
-AnalogSourceSink <-- AnalogSinkSource #line:red;line.dotted;text:red
+AnalogSourceSink <-- AnalogSinkSource   #line:red;line.dotted;text:red
+
+
+
+TranslateHTTPSource <-- HTTPSourceSink  #line:blue;line.dotted;text:blue
+HTTPSourceSink <-- ESP32GoogleTranslate #line:blue;line.dotted;text:blue
 
 
 
 TTSHTTPSource --> HTTPSourceSink         #line:black;line.dotted;text:black
 
-HTTPSourceSink    --> HTTPStreamReader      #line:black;line.dotted;text:black
-HTTPStreamReader  --> Mp3Decoder      #line:black;line.bold;text:black
-Mp3Decoder --> I2SStreamWriter  #line:black;line.bold;text:black
-I2SStreamWriter  --> HALCodec   #line:black;line.dotted;text:black
-HALCodec   --> AnalogSourceSink     #line:black;line.dotted;text:black
+HTTPSourceSink    --> HTTPStreamReader   #line:black;line.dotted;text:black
+HTTPStreamReader  --> Mp3Decoder         #line:black;line.bold;text:black
+Mp3Decoder --> I2SStreamWriter           #line:black;line.bold;text:black
+I2SStreamWriter  --> HALCodec            #line:black;line.dotted;text:black
+HALCodec   --> AnalogSourceSink          #line:black;line.dotted;text:black
 
-AnalogSourceSink --> AnalogSinkSource     #line:black;line.dotted;text:black
+AnalogSourceSink --> AnalogSinkSource    #line:black;line.dotted;text:black
 
 @enduml
