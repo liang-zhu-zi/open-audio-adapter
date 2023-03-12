@@ -1,0 +1,171 @@
+﻿@startuml pipeline_audio_forge
+title Pipeline Audio Forge
+allowmixing
+
+legend
+//Ref: esp-adf/player/pipeline_flash_tone//
+//Ref: esp-adf/player/pipeline_spiffs_mp3//
+//Ref: esp-adf/player/pipeline_play_sdcard_music//
+end legend
+
+node "SDCard" as SDCard {
+    portout "SDCard Source" as SdcardSource
+}
+
+node "ESP Device" as ESPDevice {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>sdcard_handle" : "periph_sdcard",
+        "<i>button_handle" : {
+            "MODE": "_PRESSED"
+        },
+        "<i>touch_periph" : "periph_touch"
+    }
+
+    portin "SDCard Sink" as SdcardSink
+
+    component "Pipeline 1" as Pipeline1 {
+        component FatfsStream1 [
+            <b>fatfs_stream1
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>_set_uri(..., "/sdcard/test1.wav")
+            ....
+            fats_rd_el
+            [file]
+            ....
+            <i>...
+        ]
+
+        component WavDecoder1 [
+            <b>wav_decoder1
+            ....
+            <i>...
+            ....
+            wav_decoder
+            [wav]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+        
+        component RawSteamWrite1 [
+            <b>raw_stream1
+            ....
+            <i>...
+            ....
+            el_raw_write
+            [raw]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    component "Pipeline 2" as Pipeline2 {
+        component FatfsStream2 [
+            <b>fatfs_stream2
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>_set_uri(..., "/sdcard/test2.wav")
+            ....
+            fats_rd_el
+            [file]
+            ....
+            <i>...
+        ]
+
+        component WavDecoder2 [
+            <b>wav_decoder2
+            ....
+            <i>...
+            ....
+            wav_decoder
+            [wav]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+        
+        component RawSteamWrite2 [
+            <b>raw_stream2
+            ....
+            <i>...
+            ....
+            el_raw_write
+            [raw]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    component "Mix Pipeline" as MixPipeline {
+        component AudioForge [
+            <b>audio_forge
+            ....
+            <i>.audio_forge.component_select = AUDIO_FORGE_SELECT_RESAMPLE 
+            <i>                              | AUDIO_FORGE_SELECT_DOWNMIX 
+            <i>                              | AUDIO_FORGE_SELECT_ALC 
+            <i>                              | AUDIO_FORGE_SELECT_EQUALIZER 
+            <i>                              | AUDIO_FORGE_SELECT_SONIC
+            <i>.audio_forge.dest_samplerate = DEST_SAMPLERATE
+            <i>.audio_forge.dest_channel = DEST_CHANNEL
+            <i>.audio_forge.source_num = NUMBER_SOURCE_FILE
+            <i>_source_info_init(..., source_info, downmix_info)
+            ....
+            [audio_forge]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
+            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
+            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
+        ]
+
+        component I2SStream [
+            <b>i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>.task_stack = 0
+            <i>.out_rb_size = 0
+            <i>.i2s_config.tx_desc_auto_clear = true
+            ....
+            i2s_writer
+            [i2s]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_DECODE
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Source" as AnalogSource
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink" as AnalogSink
+}
+
+SdcardSource --> SdcardSink     #line:black;line.dotted;text:black
+
+SdcardSink  --> FatfsStream1    #line:black;line.dotted;text:black
+FatfsStream1--> WavDecoder1     #line:black;line.bold;text:black
+WavDecoder1 --> RawSteamWrite1  #line:black;line.bold;text:black
+RawSteamWrite1 --> AudioForge   #line:black;line.bold;text:black
+
+SdcardSink  --> FatfsStream2    #line:black;line.dotted;text:black
+FatfsStream2--> WavDecoder2     #line:black;line.bold;text:black
+WavDecoder2 --> RawSteamWrite2  #line:black;line.bold;text:black
+RawSteamWrite2 --> AudioForge   #line:black;line.bold;text:black
+
+AudioForge  --> I2SStream       #line:black;line.bold;text:black
+I2SStream   --> HALCodec        #line:black;line.dotted;text:black
+HALCodec    --> AnalogSource    #line:black;line.dotted;text:black
+
+AnalogSource --> AnalogSink     #line:black;line.dotted;text:black
+
+@enduml
