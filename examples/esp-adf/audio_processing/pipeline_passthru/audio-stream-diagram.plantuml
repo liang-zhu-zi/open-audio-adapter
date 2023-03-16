@@ -53,14 +53,14 @@ node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink | Analog Source" as AnalogSinkSource
 }
 
-AnalogSinkSource --> AnalogSourceSink   #line:red;line.dotted;text:red
+AnalogSinkSource --> AnalogSourceSink   #line:red;line.dotted;text:red : [AUX in]
 AnalogSourceSink --> HALCodec           #line:red;line.dotted;text:red
 HALCodec         --> I2SStreamReader    #line:red;line.dotted;text:red
 
 I2SStreamReader --> I2SStreamWriter     #line:red;line.bold;text:red
 
-AnalogSourceSink--> AnalogSinkSource    #line:black;line.dotted;text:black
-HALCodec        --> AnalogSourceSink    #line:black;line.dotted;text:black
 I2SStreamWriter --> HALCodec            #line:black;line.dotted;text:black
+HALCodec        --> AnalogSourceSink    #line:black;line.dotted;text:black
+AnalogSourceSink --> AnalogSinkSource   #line:black;line.dotted;text:black : [Speak | Phonejack]
 
 @enduml
