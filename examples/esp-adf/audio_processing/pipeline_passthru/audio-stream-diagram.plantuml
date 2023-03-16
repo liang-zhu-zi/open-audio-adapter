@@ -1,0 +1,66 @@
+﻿@startuml pipeline_passthru
+title Pipeline Passthru
+allowmixing
+
+legend
+//Ref: esp-adf/cloud_services/google_translate_device//
+end legend
+
+node "ESP Device" as ESPDevice  {
+  
+    component "\n pipeline" as pipeline {
+
+        component I2SStreamWriter [
+            <b>i2s_stream_writer
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>...
+            ....
+            i2s_stream_writer
+            [i2s_write]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
+            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
+            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
+        ]
+
+        component I2SStreamReader [
+            <b>i2s_stream_reader
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>...
+            ....
+            i2s_stream_reader
+            [i2s_read]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_BOTH
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Source | Analog Sink" as AnalogSourceSink
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink | Analog Source" as AnalogSinkSource
+}
+
+AnalogSinkSource --> AnalogSourceSink   #line:red;line.dotted;text:red
+AnalogSourceSink --> HALCodec           #line:red;line.dotted;text:red
+HALCodec         --> I2SStreamReader    #line:red;line.dotted;text:red
+
+I2SStreamReader --> I2SStreamWriter     #line:red;line.bold;text:red
+
+AnalogSourceSink--> AnalogSinkSource    #line:black;line.dotted;text:black
+HALCodec        --> AnalogSourceSink    #line:black;line.dotted;text:black
+I2SStreamWriter --> HALCodec            #line:black;line.dotted;text:black
+
+@enduml
