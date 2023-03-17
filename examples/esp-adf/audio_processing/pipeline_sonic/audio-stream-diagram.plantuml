@@ -6,6 +6,7 @@ legend
 //Ref: esp-adf/cloud_services/google_translate_device//
 //Ref: esp-adf/audio_processing/pipeline_resample//
 //Ref: esp-adf/audio_processing/pipeline_sonic//
+//Ref: esp-adf/audio_processing/pipeline_spiffs_amr_resample//
 end legend
 
 node "SD Card" as SDCard  {

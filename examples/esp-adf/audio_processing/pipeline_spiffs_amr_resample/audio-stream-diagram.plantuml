@@ -1,5 +1,5 @@
-﻿@startuml pipeline_resample
-title Pipeline Resample
+﻿@startuml pipeline_spiffs_amr_resample
+title Pipeline SPIFFS AMR Resample
 allowmixing
 
 legend
@@ -9,48 +9,48 @@ legend
 //Ref: esp-adf/audio_processing/pipeline_spiffs_amr_resample//
 end legend
 
-node "SD Card" as SDCard  {
-    portout "SDCard Sink | SDCard Source" as SDCardSinkSource
+node "SPIFFS" as SPIFFS  {
+    portout "SPIFFS Sink | SPIFFS Source" as SPIFFSSinkSource
 }
 
 node "ESP Device" as ESPDevice  {
 
     json "<b><color navy>Periph Set" as periph_set {
-        "<i>sdcard_handle" : "periph_sdcard",
+        "<i>spiffs_handle" : "periph_spiffs",
         "<i>button_handle" : {
             "XXX <PRESS>" : ["STOP Playback", "START [Record]"],
             "XXX <RELEASE | LONG_RELEASE>" : ["STOP [Record]", "START Playback"],
-            "GPIO_NUM_39" : "exit"
+            "MODE" : "exit"
         },
         "<i>touch_periph" : "periph_touch"
     }
     
-    portin "SDCard Source | SDCard Sink" as EspSDCardSinkSource
+    portin "SPIFFS Source | SPIFFS Sink" as EspSPIFFSSinkSource
 
     component "Pipeline Play" as pipeline_play {
 
-        component fatfs_reader_el [
-            <b>fatfs_reader_el
+        component spiffs_reader_el [
+            <b>spiffs_reader_el
             ....
-            fatfs_stream
+            spiffs_stream
             ....
             <i>.type = AUDIO_STREAM_READER
-            <i>_setinfo(..., 16k, 1ch, 16bits, ...)
-            <i>_set_uri(..., "/sdcard/rec.wav")
+            <i>_setinfo(..., 8k, 1ch, 16bits, ...)
+            <i>_set_uri(..., "/spiffs/rec.amr")
             ....
             [file_reader]
             ....
             <i><color olive>...
         ]
 
-        component wav_decoder_el [
-            <b>wav_decoder_el
+        component amr_decoder_el [
+            <b>amr_decoder_el
             ....
-            <i>wav_decoder
+            <i>amr_decoder
             ....
             ...
             ....
-            [wav_decoder]
+            [amr_decoder]
             ....
             <i><color olive>...
         ]
@@ -60,7 +60,7 @@ node "ESP Device" as ESPDevice  {
             ....
             <i>rsp_filter
             ....
-            <i>.src_rate = 16k
+            <i>.src_rate = 8k
             <i>.src_ch = 1ch
             <i>.src_bits = 16bits
             <i>.dest_rate = 48k
@@ -91,28 +91,28 @@ node "ESP Device" as ESPDevice  {
 
     component "Pipeline Record" as pipeline_rec {
 
-        component fatfs_writer_el [
-            <b>fatfs_writer_el
+        component spiffs_writer_el [
+            <b>spiffs_writer_el
             ....
-            fatfs_stream
+            spiffs_stream
             ....
             <i>.type = AUDIO_STREAM_WRITER
-            <i>_setinfo(..., 16k, 1ch, 16bits, ...)
-            <i>_set_uri(..., "/sdcard/rec.wav")
+            <i>_setinfo(..., 8k, 1ch, 16bits, ...)
+            <i>_set_uri(..., "/spiffs/rec.amr")
             ....
             [file_writer]
             ....
             <i><color olive>...
         ]
         
-        component wav_encoder_el [
-            <b>wav_encoder_el
+        component amrnb_encoder_el [
+            <b>amrnb_encoder_el
             ....
-            <i>wav_encoder
+            <i>amrnb_encoder
             ....
             <i>...
             ....
-            [wav_encoder]
+            [amrnb_encoder]
             ....
             <i><color olive>...
         ]
@@ -125,7 +125,7 @@ node "ESP Device" as ESPDevice  {
             <i>.src_rate = 48k
             <i>.src_ch = 2ch
             <i>.src_bits = 16bits
-            <i>.dest_rate = 16k
+            <i>.dest_rate = 8k
             <i>.dest_ch = 1ch
             <i>.dest_bits = 16bits
             <i>.mode = RESAMPLE_ENCODE_MODE
@@ -166,11 +166,11 @@ node "Analog Audio" as AnalogAudio  {
 }
 
 
-SDCardSinkSource   <-- EspSDCardSinkSource  #line:red;line.dotted;text:red  : Save
+SPIFFSSinkSource   <-- EspSPIFFSSinkSource  #line:red;line.dotted;text:red  : Save
 
-EspSDCardSinkSource  <-- fatfs_writer_el    #line:red;line.dotted;text:red
-fatfs_writer_el <-- wav_encoder_el          #line:red;line.bold;text:red
-wav_encoder_el  <-- filter_downsample_el    #line:red;line.bold;text:red
+EspSPIFFSSinkSource  <-- spiffs_writer_el   #line:red;line.dotted;text:red
+spiffs_writer_el <-- amrnb_encoder_el       #line:red;line.bold;text:red
+amrnb_encoder_el  <-- filter_downsample_el  #line:red;line.bold;text:red
 filter_downsample_el <-- i2s_reader_el      #line:red;line.bold;text:red
 i2s_reader_el        <-- HALCodec           #line:red;line.dotted;text:red
 HALCodec        <-- AnalogSourceSink        #line:red;line.dotted;text:red
@@ -180,15 +180,15 @@ AnalogSourceSink <-- AnalogSinkSource       #line:red;line.dotted;text:red  : Mi
 
 
 
-SDCardSinkSource --> EspSDCardSinkSource #line:black;line.dotted;text:black : Read
+SPIFFSSinkSource --> EspSPIFFSSinkSource    #line:black;line.dotted;text:black : Read
 
-EspSDCardSinkSource  --> fatfs_reader_el #line:black;line.dotted;text:black
-fatfs_reader_el --> wav_decoder_el      #line:black;line.bold;text:black
-wav_decoder_el  --> filter_upsample_el  #line:black;line.bold;text:black
-filter_upsample_el --> i2s_writer_el    #line:black;line.bold;text:black
-i2s_writer_el   --> HALCodec            #line:black;line.dotted;text:black
-HALCodec        --> AnalogSourceSink    #line:black;line.dotted;text:black
+EspSPIFFSSinkSource  --> spiffs_reader_el   #line:black;line.dotted;text:black
+spiffs_reader_el --> amr_decoder_el         #line:black;line.bold;text:black
+amr_decoder_el   --> filter_upsample_el     #line:black;line.bold;text:black
+filter_upsample_el --> i2s_writer_el        #line:black;line.bold;text:black
+i2s_writer_el   --> HALCodec                #line:black;line.dotted;text:black
+HALCodec        --> AnalogSourceSink        #line:black;line.dotted;text:black
 
-AnalogSourceSink --> AnalogSinkSource   #line:black;line.dotted;text:black : Speaker
+AnalogSourceSink --> AnalogSinkSource       #line:black;line.dotted;text:black : Speaker
 
 @enduml
