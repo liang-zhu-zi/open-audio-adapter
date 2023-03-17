@@ -1,0 +1,190 @@
+﻿@startuml pipeline_resample
+title Pipeline Resample
+allowmixing
+
+legend
+//Ref: esp-adf/cloud_services/google_translate_device//
+end legend
+
+node "SD Card" as SDCard  {
+    portout "SDCard Sink | SDCard Source" as SDCardSinkSource
+}
+
+node "ESP Device" as ESPDevice  {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>sdcard_handle" : "periph_sdcard",
+        "<i>button_handle" : {
+            "XXX <PRESS>" : ["STOP Playback", "START [Record]"],
+            "XXX <RELEASE | LONG_RELEASE>" : ["STOP [Record]", "START Playback"],
+            "GPIO_NUM_39" : "exit"
+        },
+        "<i>touch_periph" : "periph_touch"
+    }
+    
+    portin "SDCard Source | SDCard Sink" as EspSDCardSinkSource
+
+    component "Pipeline Play" as pipeline_play {
+
+        component fatfs_reader_el [
+            <b>fatfs_reader_el
+            ....
+            fatfs_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>_setinfo(..., 16k, 1ch, 16bits, ...)
+            <i>_set_uri(..., "/sdcard/rec.wav")
+            ....
+            [file_reader]
+            ....
+            <i><color olive>...
+        ]
+
+        component wav_decoder_el [
+            <b>wav_decoder_el
+            ....
+            <i>wav_decoder
+            ....
+            ...
+            ....
+            [wav_decoder]
+            ....
+            <i><color olive>...
+        ]
+        
+        component filter_upsample_el [
+            <b>filter_upsample_el
+            ....
+            <i>rsp_filter
+            ....
+            <i>.src_rate = 16k
+            <i>.src_ch = 1ch
+            <i>.src_bits = 16bits
+            <i>.dest_rate = 48k
+            <i>.dest_ch = 2ch
+            <i>.dest_bits = 16bits
+            <i>.mode = RESAMPLE_DECODE_MODE
+            <i>.complexity = 0
+            ....
+            [filter_upsample]
+            ....
+            <i><color olive>...
+        ]        
+
+        component i2s_writer_el [
+            <b>i2s_writer_el
+            ....
+            <i>i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>.i2s_config.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT
+            <i>_set_clk(..., 48k, 1ch, 16bits,...)
+            ....
+            i2s_stream_writer
+            [tts_i2s]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    component "Pipeline Record" as pipeline_rec {
+
+        component fatfs_writer_el [
+            <b>fatfs_writer_el
+            ....
+            fatfs_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>_setinfo(..., 16k, 1ch, 16bits, ...)
+            <i>_set_uri(..., "/sdcard/rec.wav")
+            ....
+            [file_writer]
+            ....
+            <i><color olive>...
+        ]
+        
+        component wav_encoder_el [
+            <b>wav_encoder_el
+            ....
+            <i>wav_encoder
+            ....
+            <i>...
+            ....
+            [wav_encoder]
+            ....
+            <i><color olive>...
+        ]
+        
+        component filter_downsample_el [
+            <b>filter_downsample_el
+            ....
+            <i>rsp_filter
+            ....
+            <i>.src_rate = 48k
+            <i>.src_ch = 2ch
+            <i>.src_bits = 16bits
+            <i>.dest_rate = 16k
+            <i>.dest_ch = 1ch
+            <i>.dest_bits = 16bits
+            <i>.mode = RESAMPLE_ENCODE_MODE
+            <i>.complexity = 0
+            ....
+            [filter_downsample]
+            ....
+            <i><color olive>...
+        ]
+
+        component i2s_reader_el [
+            <b>i2s_reader_el
+            ....
+            <i>i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>_setinfo(..., 48k, 2ch, 16bits, ...)
+            ....            
+            [i2s_reader]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_BOTH
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Source | Analog Sink" as AnalogSourceSink
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink | Analog Source" as AnalogSinkSource
+}
+
+
+SDCardSinkSource   <-- EspSDCardSinkSource  #line:red;line.dotted;text:red  : Save
+
+EspSDCardSinkSource  <-- fatfs_writer_el    #line:red;line.dotted;text:red
+fatfs_writer_el <-- wav_encoder_el          #line:red;line.bold;text:red
+wav_encoder_el  <-- filter_downsample_el    #line:red;line.bold;text:red
+filter_downsample_el <-- i2s_reader_el      #line:red;line.bold;text:red
+i2s_reader_el        <-- HALCodec           #line:red;line.dotted;text:red
+HALCodec        <-- AnalogSourceSink        #line:red;line.dotted;text:red
+
+AnalogSourceSink <-- AnalogSinkSource       #line:red;line.dotted;text:red  : Mic
+
+
+SDCardSinkSource --> EspSDCardSinkSource #line:black;line.dotted;text:black : Read
+
+EspSDCardSinkSource  --> fatfs_reader_el #line:black;line.dotted;text:black
+fatfs_reader_el --> wav_decoder_el      #line:black;line.bold;text:black
+wav_decoder_el  --> filter_upsample_el  #line:black;line.bold;text:black
+filter_upsample_el --> i2s_writer_el    #line:black;line.bold;text:black
+i2s_writer_el   --> HALCodec            #line:black;line.dotted;text:black
+HALCodec        --> AnalogSourceSink    #line:black;line.dotted;text:black
+
+AnalogSourceSink --> AnalogSinkSource   #line:black;line.dotted;text:black : Speaker
+
+@enduml
