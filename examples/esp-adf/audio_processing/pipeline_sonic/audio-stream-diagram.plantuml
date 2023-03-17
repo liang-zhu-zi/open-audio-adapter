@@ -1,5 +1,5 @@
-﻿@startuml pipeline_resample
-title Pipeline Resample
+﻿@startuml pipeline_sonic
+title Pipeline Sonic
 allowmixing
 
 legend
@@ -17,9 +17,9 @@ node "ESP Device" as ESPDevice  {
     json "<b><color navy>Periph Set" as periph_set {
         "<i>sdcard_handle" : "periph_sdcard",
         "<i>button_handle" : {
-            "XXX <PRESS>" : ["STOP Playback", "START [Record]"],
-            "XXX <RELEASE | LONG_RELEASE>" : ["STOP [Record]", "START Playback"],
-            "GPIO_NUM_39" : "exit"
+            "Mode <PRESS | LONG_PRESSED>" : "!is_modify_speed",
+            "Rec <PRESSED>" : ["Stop Playback", "Start [Record]"],
+            "Rec <RELEASE | LONG_RELEASE>" : ["Stop [Record]", "Start Playback"]
         },
         "<i>touch_periph" : "periph_touch"
     }
@@ -31,7 +31,7 @@ node "ESP Device" as ESPDevice  {
         component fatfs_reader_el [
             <b>fatfs_reader_el
             ....
-            fatfs_stream
+            <i>fatfs_stream
             ....
             <i>.type = AUDIO_STREAM_READER
             <i>_setinfo(..., 16k, 1ch, 16bits, ...)
@@ -54,21 +54,18 @@ node "ESP Device" as ESPDevice  {
             <i><color olive>...
         ]
         
-        component filter_upsample_el [
-            <b>filter_upsample_el
+        component sonic_el [
+            <b>sonic_el
             ....
-            <i>rsp_filter
+            <i>sonic
             ....
-            <i>.src_rate = 16k
-            <i>.src_ch = 1ch
-            <i>.src_bits = 16bits
-            <i>.dest_rate = 48k
-            <i>.dest_ch = 2ch
-            <i>.dest_bits = 16bits
-            <i>.mode = RESAMPLE_DECODE_MODE
-            <i>.complexity = 0
+            <i>.sonic_info.samplerate = 16k
+            <i>.sonic_info.channel = 1ch
+            <i>.sonic_info.resample_linear_interpolate = 1
+            <i>._set_pitch_and_speed_info(..., SONIC_PITCH, ...) ||
+            <i>._set_pitch_and_speed_info(..., ..., SONIC_SPEED)
             ....
-            [filter_upsample]
+            [sonic]
             ....
             <i><color olive>...
         ]        
@@ -80,7 +77,7 @@ node "ESP Device" as ESPDevice  {
             ....
             <i>.type = AUDIO_STREAM_WRITER
             <i>.i2s_config.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT
-            <i>_set_clk(..., 48k, 1ch, 16bits,...)
+            <i>_set_clk(..., 16k, 1ch, 16bits,...)
             ....
             [i2s_writer]
             ....
@@ -93,7 +90,7 @@ node "ESP Device" as ESPDevice  {
         component fatfs_writer_el [
             <b>fatfs_writer_el
             ....
-            fatfs_stream
+            <i>fatfs_stream
             ....
             <i>.type = AUDIO_STREAM_WRITER
             <i>_setinfo(..., 16k, 1ch, 16bits, ...)
@@ -115,25 +112,6 @@ node "ESP Device" as ESPDevice  {
             ....
             <i><color olive>...
         ]
-        
-        component filter_downsample_el [
-            <b>filter_downsample_el
-            ....
-            <i>rsp_filter
-            ....
-            <i>.src_rate = 48k
-            <i>.src_ch = 2ch
-            <i>.src_bits = 16bits
-            <i>.dest_rate = 16k
-            <i>.dest_ch = 1ch
-            <i>.dest_bits = 16bits
-            <i>.mode = RESAMPLE_ENCODE_MODE
-            <i>.complexity = 0
-            ....
-            [filter_downsample]
-            ....
-            <i><color olive>...
-        ]
 
         component i2s_reader_el [
             <b>i2s_reader_el
@@ -141,7 +119,7 @@ node "ESP Device" as ESPDevice  {
             <i>i2s_stream
             ....
             <i>.type = AUDIO_STREAM_READER
-            <i>_setinfo(..., 48k, 2ch, 16bits, ...)
+            <i>_setinfo(..., 16k, 1ch, 16bits, ...)
             ....
             [i2s_reader]
             ....
@@ -169,9 +147,8 @@ SDCardSinkSource   <-- EspSDCardSinkSource  #line:red;line.dotted;text:red  : Sa
 
 EspSDCardSinkSource  <-- fatfs_writer_el    #line:red;line.dotted;text:red
 fatfs_writer_el <-- wav_encoder_el          #line:red;line.bold;text:red
-wav_encoder_el  <-- filter_downsample_el    #line:red;line.bold;text:red
-filter_downsample_el <-- i2s_reader_el      #line:red;line.bold;text:red
-i2s_reader_el        <-- HALCodec           #line:red;line.dotted;text:red
+wav_encoder_el  <-- i2s_reader_el           #line:red;line.bold;text:red
+i2s_reader_el   <-- HALCodec                #line:red;line.dotted;text:red
 HALCodec        <-- AnalogSourceSink        #line:red;line.dotted;text:red
 
 AnalogSourceSink <-- AnalogSinkSource       #line:red;line.dotted;text:red  : Mic
@@ -182,12 +159,12 @@ AnalogSourceSink <-- AnalogSinkSource       #line:red;line.dotted;text:red  : Mi
 SDCardSinkSource --> EspSDCardSinkSource #line:black;line.dotted;text:black : Read
 
 EspSDCardSinkSource  --> fatfs_reader_el #line:black;line.dotted;text:black
-fatfs_reader_el --> wav_decoder_el      #line:black;line.bold;text:black
-wav_decoder_el  --> filter_upsample_el  #line:black;line.bold;text:black
-filter_upsample_el --> i2s_writer_el    #line:black;line.bold;text:black
-i2s_writer_el   --> HALCodec            #line:black;line.dotted;text:black
-HALCodec        --> AnalogSourceSink    #line:black;line.dotted;text:black
+fatfs_reader_el --> wav_decoder_el       #line:black;line.bold;text:black
+wav_decoder_el  --> sonic_el             #line:black;line.bold;text:black
+sonic_el        --> i2s_writer_el        #line:black;line.bold;text:black
+i2s_writer_el   --> HALCodec             #line:black;line.dotted;text:black
+HALCodec        --> AnalogSourceSink     #line:black;line.dotted;text:black
 
-AnalogSourceSink --> AnalogSinkSource   #line:black;line.dotted;text:black : Speaker
+AnalogSourceSink --> AnalogSinkSource    #line:black;line.dotted;text:black : Speaker
 
 @enduml
