@@ -1,0 +1,214 @@
+﻿@startuml downmix_pipeline
+title Downmix Pipeline
+allowmixing
+
+legend
+//Ref: esp-adf/player/pipeline_play_sdcard_music//
+end legend
+
+node "SDCard" as SDCard {
+    portout "SDCard Source" as SdcardSource
+}
+
+node "ESP Device" as ESPDevice {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>sdcard_handle" : "periph_sdcard",
+        "<i>button_handle" : {
+            "MODE <PRESS>" : ["New come music running...",
+            "downmix_set_work_mode(downmixer, ..._SWITCH_ON)"]
+        },
+        "<i>touch_periph" : "periph_touch"
+    }
+
+    portin "SDCard Sink" as SdcardSink
+
+    component "base_stream_pipeline" as base_stream_pipeline {
+        component base_fatfs_reader_el [
+            <b>base_fatfs_reader_el
+            ....
+            fatfs_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>_set_uri(..., "/sdcard/music.mp3")
+            ....
+            [base_file]
+            ....
+            <i>...
+        ]
+
+        component base_mp3_decoder_el [
+            <b>base_mp3_decoder_el
+            ....
+            mp3_decoder
+            ....
+            <i>...
+            ....
+            [base_mp3]
+            ....
+            <i><color olive>...
+        ]
+
+        component base_rsp_filter_el [
+            <b>base_rsp_filter_el
+            ....
+            rsp_filter
+            ....
+            <i>.src_rate = 44100
+            <i>.src_ch = 2
+            <i>.dest_rate = 48000
+            <i>.dest_ch = 1
+            ....
+            [base_filter]
+            ....
+            <i><color olive>...
+        ]
+
+        component base_raw_write_el [
+            <b>base_raw_write_el
+            ....
+            raw_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            ....
+            [base_raw]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+     component "newcome_stream_pipeline" as newcome_stream_pipeline {
+        component newcome_fatfs_reader_el [
+            <b>newcome_fatfs_reader_el
+            ....
+            fatfs_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>_set_uri(..., "/sdcard/tone.mp3")
+            ....
+            [newcome_file]
+            ....
+            <i>...
+        ]
+
+        component newcome_mp3_decoder_el [
+            <b>newcome_mp3_decoder_el
+            ....
+            mp3_decoder
+            ....
+            <i>...
+            ....
+            [newcome_mp3]
+            ....
+            <i><color olive>...
+        ]
+
+        component newcome_rsp_filter_el [
+            <b>newcome_rsp_filter_el
+            ....
+            rsp_filter
+            ....
+            <i>.src_rate = 16000
+            <i>.src_ch = 1
+            <i>.dest_rate = 48000
+            <i>.dest_ch = 1
+            ....
+            [newcome_filter]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT &&
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS &&
+            <i><color olive>(msg.data == AEL_STATUS_STATE_STOPPED ||
+            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED)
+            <i><color olive> => [New come music stoped or finsihed]
+        ]
+
+        component newcome_raw_write_el [
+            <b>newcome_raw_write_el
+            ....
+            raw_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            ....
+            [newcome_raw]
+            ....
+            <i><color olive>...
+        ]
+     }
+
+    component "pipeline_mix" as pipeline_mix {        
+        component downmixer [
+            <b>downmixer
+            ....
+            downmix
+            ....
+            <i>.downmix_info.source_num = 2
+            <i>downmix_set_input_rb_timeout(..., INDEX_BASE_STREAM)
+            <i>downmix_set_input_rb_timeout(..., INDEX_NEWCOME_STREAM)
+            <i>source_info_init(..., source_information[{48k,1ch,16bits,{0, -10},...},{48k,1ch,16bits,{-10, 0},...}])
+            <i>downmix_set_input_rb(..., _get_input_ringbuf(**base_raw_write_el**), 0)
+            <i>downmix_set_input_rb(..., _get_input_ringbuf(**newcome_raw_write_el**), 1)
+            <i>downmix_set_output_type(..., mono/1ch)
+            <i>downmix_set_work_mode(..., ESP_DOWNMIX_WORK_MODE_BYPASS)
+            ....
+            [mixer]
+            ....
+            <i><color olive>...
+        ]
+
+        component i2s_writer [
+            <b>i2s_writer
+            ....
+            i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            ....
+            [i2s]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT &&
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS &&
+            <i><color olive>(msg.data == AEL_STATUS_STATE_STOPPED ||
+            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED)
+            <i><color olive> => [Player finsihed, break loop]
+        ]
+    }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_DECODE
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Source" as AnalogSource
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink" as AnalogSink
+}
+
+SdcardSource --> SdcardSink     #line:black;line.dotted;text:black
+
+'base_stream_pipeline
+SdcardSink          --> base_fatfs_reader_el    #line:black;line.dotted;text:black
+base_fatfs_reader_el--> base_mp3_decoder_el     #line:black;line.bold;text:black
+base_mp3_decoder_el --> base_rsp_filter_el      #line:black;line.bold;text:black
+base_rsp_filter_el  --> base_raw_write_el       #line:black;line.bold;text:black
+
+'newcome_stream_pipeline
+SdcardSink             --> newcome_fatfs_reader_el    #line:black;line.dotted;text:black
+newcome_fatfs_reader_el--> newcome_mp3_decoder_el     #line:black;line.bold;text:black
+newcome_mp3_decoder_el --> newcome_rsp_filter_el      #line:black;line.bold;text:black
+newcome_rsp_filter_el  --> newcome_raw_write_el       #line:black;line.bold;text:black
+
+'pipeline_mix
+base_raw_write_el    --> downmixer  #line:black;line.dotted;text:black
+newcome_raw_write_el --> downmixer  #line:black;line.dotted;text:black
+downmixer   --> i2s_writer       #line:black;line.bold;text:black
+i2s_writer  --> HALCodec         #line:black;line.dotted;text:black
+HALCodec    --> AnalogSource     #line:black;line.dotted;text:black
+
+'analog
+AnalogSource --> AnalogSink     #line:black;line.dotted;text:black
+
+@enduml
