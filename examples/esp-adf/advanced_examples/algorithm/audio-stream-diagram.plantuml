@@ -1,0 +1,188 @@
+﻿@startuml algorithm
+title Algorithm
+allowmixing
+
+legend
+//Ref: esp-adf/cloud_services/google_translate_device//
+//Ref: esp-adf/audio_processing/pipeline_resample//
+//Ref: esp-adf/audio_processing/pipeline_sonic//
+//Ref: esp-adf/audio_processing/pipeline_spiffs_amr_resample//
+//Ref: esp-adf/advanced_examples/algorithm//
+end legend
+
+node "SD Card" as SDCard  {
+    portout "SDCard Sink | SDCard Source" as SDCardSinkSource
+}
+
+node "ESP Device" as ESPDevice  {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>sdcard_handle" : "periph_sdcard"
+    }
+    
+    portin "SDCard Source | SDCard Sink" as EspSDCardSinkSource
+
+    component "Pipeline Play" as pipeline_play {
+
+        component binary_test_mp3 [
+            <b>binary_test_mp3
+            ....
+            <i><color olive>_binary_test_mp3_start
+            <i><color olive>_binary_test_mp3_end
+        ]
+
+        component mp3_decoder [
+            <b>mp3_decoder
+            ....
+            <i>mp3_decoder
+            ....
+            ...
+            ....
+            [mp3_decoder]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT &&
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+        ]
+        
+        component filter_w [
+            <b>filter_w
+            ....
+            <i>rsp_filter
+            ....
+            <i>.src_rate = 16k
+            <i>.src_ch = 1ch
+            <i>.src_bits = 16bits
+            <i>.dest_rate = 8k
+            <i>.dest_ch = 1ch
+            <i>.dest_bits = 16bits
+            <i>.mode = RESAMPLE_DECODE_MODE
+            <i>.complexity = 5
+            <i>_set_write_cb(..., **i2s_write_cb**, ...)
+            ....
+            [filter_w]
+            ....
+            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT &&
+            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS &&
+            <i><color olive>(msg.data == AEL_STATUS_STATE_STOPPED ||
+            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED)
+        ]        
+
+        component i2s_write_cb #line:black;line.dotted;text:black [
+            <b>i2s_write_cb()
+            ....
+            <i>rb_write(**ringbuf_ref**, buf, len,...)
+            <i>algorithm_mono_fix(buf, len)
+            <i>i2s_write_expand(I2S_NUM_0, buf, len, ...)
+        ]
+    }
+
+    rectangle ringbuf_ref [
+        <b>ringbuf_ref
+        ....
+        ringbuf
+        ....
+        rb_create(1024bytes, 1block)
+        ....
+        ...
+        ....
+        ...
+    ]
+
+    component "Pipeline Record" as pipeline_rec {
+
+        component fatfs_stream_writer [
+            <b>fatfs_stream_writer
+            ....
+            fatfs_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>_setinfo(..., 8k, 1ch, 16bits, ...)
+            <i>_set_uri(..., "/sdcard/aec_out.wav")
+            ....
+            [fatfs_stream]
+            ....
+            <i><color olive>...
+        ]
+        
+        component wav_encoder_el [
+            <b>wav_encoder_el
+            ....
+            <i>wav_encoder
+            ....
+            <i>...
+            ....
+            [wav_encoder]
+            ....
+            <i><color olive>...
+        ]
+        
+        component element_algo [
+            <b>element_algo
+            ....
+            <i>algo_stream
+            ....
+            <i>.input_type = ALGORITHM_STREAM_INPUT_TYPE2
+            <i>.sample_rate = 8k
+            <i>.out_rb_size = 256
+            <i>_set_music_info(..., 8k, 1ch, 16bits)
+            <i>_set_multi_input_ringbuf(..., **ringbuf_ref**, 0)
+            <i>algo_stream_set_delay(..., **ringbuf_ref**, _REF_DELAY_MS)
+            <i>_set_read_cb(..., **i2s_read_cb**, NULL)
+            ....
+            [algo, algorithm]
+            ....
+            <i><color olive>...
+        ]
+
+        component i2s_read_cb #line:black;line.dotted;text:black [
+            <b>i2s_read_cb()
+            ....
+            <i>i2s_read(CODEC_ADC_I2S_PORT, buf, &bytes_read， ...)
+            <i>algorithm_mono_fix(buf, bytes_read)
+        ]
+    }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_BOTH
+        <i>_set_volume(..., 60)
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Source | Analog Sink" as AnalogSourceSink
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink | Analog Source" as AnalogSinkSource
+}
+
+'record
+SDCardSinkSource   <-- EspSDCardSinkSource  #line:red;line.dotted;text:red  : Save
+
+EspSDCardSinkSource  <-- fatfs_stream_writer    #line:red;line.dotted;text:red
+fatfs_stream_writer <-- wav_encoder_el          #line:red;line.bold;text:red
+wav_encoder_el  <-- element_algo    #line:red;line.bold;text:red
+element_algo    <-- i2s_read_cb      #line:red;line.dotted;text:red
+i2s_read_cb     <-- HALCodec           #line:red;line.dotted;text:red
+HALCodec        <-- AnalogSourceSink        #line:red;line.dotted;text:red
+
+AnalogSourceSink <-- AnalogSinkSource       #line:red;line.dotted;text:red  : Mic
+
+'play
+binary_test_mp3  --> mp3_decoder      #line:black;line.dotted;text:black : mp3_music_read_cb()
+
+mp3_decoder  --> filter_w  #line:black;line.bold;text:black
+filter_w     --> i2s_write_cb    #line:black;line.dotted;text:black
+i2s_write_cb --> HALCodec            #line:black;line.dotted;text:black
+HALCodec     --> AnalogSourceSink    #line:black;line.dotted;text:black
+
+AnalogSourceSink --> AnalogSinkSource   #line:black;line.dotted;text:black : Speaker
+
+'ref
+/'ref'/
+filter_w --> ringbuf_ref
+ringbuf_ref  --> element_algo
+
+@enduml
