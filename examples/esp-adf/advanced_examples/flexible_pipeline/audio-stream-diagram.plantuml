@@ -1,0 +1,154 @@
+﻿@startuml flexble_pipeline
+title Flexble Pipeline
+allowmixing
+
+legend
+//Ref: esp-adf/audio_processing/pipeline_resample//
+end legend
+
+node "SD Card" as SDCard  {
+    portout "SDCard Sink | SDCard Source" as SDCardSinkSource
+}
+
+node "ESP Device" as ESPDevice  {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>sdcard_handle" : "periph_sdcard",
+        "<i>button_handle" : {
+            "MODE <PRESS>" : ["Changing music to MP3 or AAC", "Start playback new pipeline"]
+        },
+        "<i>touch_periph" : "periph_touch"
+    }
+    
+    portin "SDCard Source | SDCard Sink" as EspSDCardSinkSource
+
+    component "pipeline_play" as pipeline_play {
+
+        component fatfs_aac_reader_el [
+            <b>fatfs_aac_reader_el
+            ....
+            fatfs_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>_setinfo(..., 16k, 1ch, 16bits, ...)
+            <i>_set_uri(..., "/sdcard/test.aac")
+            ....
+            [file_aac_reader]
+            ....
+            <i><color olive>...
+        ]
+
+        component fatfs_mp3_reader_el [
+            <b>fatfs_mp3_reader_el
+            ....
+            fatfs_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>_setinfo(..., 16k, 1ch, 16bits, ...)
+            <i>_set_uri(..., "/sdcard/test.mp3")
+            ....
+            [file_mp3_reader]
+            ....
+            <i><color olive>...
+        ]
+
+        component aac_decoder_el [
+            <b>aac_decoder_el
+            ....
+            <i>aac_decoder
+            ....
+            ...
+            ....
+            [aac_decoder]
+            ....
+            <i><color olive>...
+        ]
+
+        component mp3_decoder_el [
+            <b>mp3_decoder_el
+            ....
+            <i>mp3_decoder
+            ....
+            ...
+            ....
+            [mp3_decoder]
+            ....
+            <i><color olive>...
+        ]
+        
+        component filter_upsample_el [
+            <b>filter_upsample_el
+            ....
+            <i>rsp_filter
+            ....
+            <i>.src_rate = 16k
+            <i>.src_ch = 1ch
+            <i>.src_bits = 16bits
+            <i>.dest_rate = 48k
+            <i>.dest_ch = 2ch
+            <i>.dest_bits = 16bits
+            <i>.mode = RESAMPLE_DECODE_MODE
+            <i>.complexity = 0
+            ....
+            [filter_upsample]
+            ....
+            <i><color olive>...
+        ]        
+
+        component i2s_writer_el [
+            <b>i2s_writer_el
+            ....
+            <i>i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>.i2s_config.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT
+            <i>_set_clk(..., 48k, 1ch, 16bits,...)
+            ....
+            [i2s_writer]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    note left of pipeline_play
+    Choice AAC or MP3
+    end note
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_BOTH???
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Source | Analog Sink" as AnalogSourceSink
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink | Analog Source" as AnalogSinkSource
+}
+
+'sdcard
+SDCardSinkSource --> EspSDCardSinkSource #line:black;line.dotted;text:black : [Read]
+
+'play
+'AAC
+EspSDCardSinkSource --> fatfs_aac_reader_el #line:black;line.dotted;text:black : [AAC]
+fatfs_aac_reader_el --> aac_decoder_el      #line:black;line.bold;text:black   : [AAC]
+aac_decoder_el      --> filter_upsample_el  #line:black;line.bold;text:black   : [AAC]
+filter_upsample_el  --> i2s_writer_el       #line:black;line.bold;text:black   : [AAC]
+i2s_writer_el       --> HALCodec            #line:black;line.dotted;text:black : [AAC]
+'MP3
+EspSDCardSinkSource --> fatfs_mp3_reader_el #line:black;line.dotted;text:black : [MP3]
+fatfs_mp3_reader_el --> mp3_decoder_el      #line:black;line.bold;text:black   : [MP3]
+mp3_decoder_el      --> filter_upsample_el  #line:black;line.bold;text:black   : [MP3]
+filter_upsample_el  --> i2s_writer_el       #line:black;line.bold;text:black   : [MP3]
+i2s_writer_el       --> HALCodec            #line:black;line.dotted;text:black : [MP3]
+'share
+HALCodec        --> AnalogSourceSink    #line:black;line.dotted;text:black
+
+'analog
+AnalogSourceSink --> AnalogSinkSource   #line:black;line.dotted;text:black : Speaker
+
+@enduml
