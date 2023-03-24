@@ -1,12 +1,10 @@
-﻿@startuml pipeline_http_mp3
-title Pipeline HTTP MP3
+﻿@startuml http_play_and_save_to_file
+title HTTP play and save to file
 allowmixing
 
 legend
-//Ref: esp-adf/get-started/play_mp3_control//
 //Ref: esp-adf/player/pipeline_http_mp3//
-//Ref: esp-adf/player/pipeline_http_select_decoder//
-//Ref: esp-adf/player/pipeline_living_stream//
+//Ref: esp-adf/audio_processing/http_play_and_save_to_file//
 end legend
 
 node "HTTP Server" as HTTPServer  {
@@ -18,12 +16,13 @@ node "ESP Device" as ESPDevice  {
     json "<b><color navy>Periph Set" as periph_set {
         "<i>wifi_handle" : {
             "periph_wifi" : [".ssid", ".password"]
-        }
+        },
+        "<i>sdcard_handle" : "periph_sdcard"
     }
     
     portin "HTTP Sink" as HTTPSink
 
-    component "Play Pipeline" as PlayPipeline {
+    component "pipeline_play" as pipeline_play {
 
         component HTTPStream [
             <b>http_stream_reader
@@ -31,11 +30,13 @@ node "ESP Device" as ESPDevice  {
             <i>http_stream
             ....
             <i>.type = AUDIO_STREAM_READER
+            <i>.multi_out_num = 1
+            <i>_set_uri(..., "https://.../dl/audio/ff-16b-2c-44100hz.mp3")
+            <i>_set_multi_output_ringbuf(..., _get_output_ringbuf(**el_raw_read**), 0)
             ....
             [http]
             ....
-            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
-            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+            <i><color olive>...
         ]
 
         component Mp3Decoder [
@@ -49,6 +50,9 @@ node "ESP Device" as ESPDevice  {
             ....
             <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
             <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+            <i><color olive>  ==> [  _getinfo(**mp3_decoder**, &music_info), ]
+            <i><color olive>         [  _setinfo(**i2s_stream_writer**, &music_info) ]
+            <i><color olive>  ==> [ i2s_stream_set_clk(**i2s_stream_writer**, ...) ]
         ]
 
         component I2SStream [
@@ -64,7 +68,37 @@ node "ESP Device" as ESPDevice  {
             <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
             <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
             <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
+            <i><color olive>  ==> [ break ]
         ]
+    }
+
+    component "pipeline_save" as pipeline_save {
+
+        component el_raw_read [
+            <b>el_raw_read
+            ....
+            <i>raw_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            ....
+            [raw]
+            ....
+            <i><color olive>...
+        ]
+
+        component el_fatfs_wr_stream [
+            <b>el_fatfs_wr_stream
+            ....
+            <i>fatfs_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>_set_uri(..., "/sdcard/test_output.mp3")
+            ....
+            [file]
+            ....
+            <i><color olive>...
+        ]
+
     }
 
     component HALCodec [
@@ -76,20 +110,33 @@ node "ESP Device" as ESPDevice  {
     ]
 
     portout "Analog Source" as AnalogSource
+    portout "SDCard Source" as EspSDCardSource
 } 
 
 node "Analog Audio" as AnalogAudio  {
     portin "Analog Sink" as AnalogSink
 }
 
+node "SD Card" as SDCard  {
+    portin "SDCard Sink" as SDCardSink
+}
+
 HTTPSource --> HTTPSink         #line:black;line.dotted;text:black
 
 HTTPSink    --> HTTPStream      #line:black;line.dotted;text:black
+'play
 HTTPStream  --> Mp3Decoder      #line:black;line.bold;text:black
 Mp3Decoder --> I2SStream        #line:black;line.bold;text:black
 I2SStream  --> HALCodec         #line:black;line.dotted;text:black
 HALCodec   --> AnalogSource     #line:black;line.dotted;text:black
 
-AnalogSource --> AnalogSink     #line:black;line.dotted;text:black
+AnalogSource --> AnalogSink     #line:black;line.dotted;text:black : [ Play ]
+
+'record
+HTTPStream   --> el_raw_read           #line:blue;line.dotted;text:blue
+el_raw_read  --> el_fatfs_wr_stream    #line:blue;line.bold;text:blue
+el_fatfs_wr_stream --> EspSDCardSource #line:blue;line.dotted;text:blue
+
+EspSDCardSource    --> SDCardSink      #line:blue;line.dotted;text:blue  : [ Save ]
 
 @enduml
