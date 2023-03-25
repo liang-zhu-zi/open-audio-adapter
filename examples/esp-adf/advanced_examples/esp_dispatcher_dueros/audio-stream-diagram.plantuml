@@ -1,0 +1,206 @@
+﻿@startuml esp_dispatcher_dueros
+title esp_dispatcher dueros
+allowmixing
+
+legend
+//Ref: esp-adf/cloud_services/google_translate_device//
+//Ref: esp-adf/advanced_examples/esp_dispatcher_dueros//
+end legend
+
+node "DuerOS \n(HTTP Server) (1)" as DuerOS  {
+    portout "HTTP Sink | Source" as DuerOSHTTPSinkSource
+} 
+
+node "ESP Device" as ESPDevice  {
+
+    json "<b><color navy>Periph Set" as periph_set {
+        "<i>sdcard_handle" : "periph_sdcard",
+        "<i>input_serv" : "input_key_service",
+        "<i>audio_serv" : "dueros_service",
+        "<i>wifi_serv"  : "wifi_service"
+    }
+    
+    portin "HTTP Source | HTTP Sink" as HTTPSourceSink
+    
+    component audio_recorder [
+        <b>dueros_speaker->recorder
+        ...            
+        <i>audio_recorder
+        ....
+        <i>.event_cb = cb
+        <i>.vad_off = 1000
+        <i>.user_data = ctx
+        <i>.read = **&input_cb_for_afe**
+        <i>.sr_handle = **recorder_sr**
+        ....
+        <i><color olive>...
+    ]
+
+    component recorder_sr [
+        <b>recorder_sr
+        ...            
+        <i>recorder_sr
+        ....
+        <i>.afe_cfg.aec_init = false
+        <i>.afe_cfg.memory_alloc_mode = AFE_MEMORY_ALLOC_MORE_PSRAM
+        <i>.afe_cfg.agc_mode = AFE_MN_PEAK_NO_AGC
+        
+        ....
+        <i><color olive>...
+    ]
+
+    component "pipeline record" as pipeline_record {
+
+        component raw_read [
+            <b>raw_read
+            ...            
+            <i>raw_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            ....
+            [raw]
+            ....
+            <i><color olive>...
+        ]
+
+        component filter [
+            <b>filter
+            ....
+            <i>rsp_filter
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>.src_rate = CODEC_ADC_SAMPLE_RATE / 48000
+            <i>.dest_rate = 16000
+            ....
+            [filter]
+            ....
+            <i><color olive>...
+        ]
+
+        component i2s_stream_reader [
+            <b>i2s_stream_reader
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>.i2s_port = CODEC_ADC_I2S_PORT / 0
+            <i>.i2s_config.use_apll = 0
+            <i>.i2s_config.sample_rate = CODEC_ADC_SAMPLE_RATE
+            <i>.i2s_config.channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT
+            ....
+            i2s_stream_reader
+            [i2s]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    component "dueros_speaker->player \n (esp_audio)" as esp_audio  #aliceblue {
+
+        component fs_reader #line:black;line.dotted;text:black [
+            <b>fs_reader
+            ....
+            <i>fatfs_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            ....
+            [fatfs]
+            ....
+            <i><color olive>...
+        ]
+
+        component http_stream_reader #line:black;line.dotted;text:black [
+            <b>http_stream_reader
+            ....
+            <i>http_stream
+            ....
+            <i>.type = AUDIO_STREAM_READER
+            <i>.enable_playlist_parser = true
+            ....
+            [http]
+            ....
+            <i><color olive>...
+        ]
+
+        component xxx_decoder #line:black;line.dotted;text:black [
+            <b>xxx_decoder
+            ....
+            <i>xxx_decoder
+            ....
+            <i>[mp3 | wav | aac | m4a | ts]
+            ....
+            [decoder]
+            ....
+            <i><color olive>...
+        ]
+
+        component rsp_filter #line:black;line.dotted;text:black [
+            <b>rsp_filter?
+            ....
+            <i>rsp_filter
+            ....
+            <i>.resample_rate = 48000
+            ....
+            [filter]
+            ....
+            <i><color olive>...
+        ]
+
+        component i2s_stream_writer #line:black;line.dotted;text:black [
+            <b>i2s_stream_writer
+            ....
+            <i>i2s_stream
+            ....
+            <i>.type = AUDIO_STREAM_WRITER
+            <i>.i2s_config.sample_rate = 48000
+            <i>.i2s_config.bits_per_sample = CODEC_ADC_BITS_PER_SAMPLE
+            <i>.need_expand = (CODEC_ADC_BITS_PER_SAMPLE != I2S_BITS_PER_SAMPLE_16BIT)
+            ....
+            [i2s]
+            ....
+            <i><color olive>...
+        ]
+    }
+
+    component HALCodec [
+        <b>audio_hal_ctrl_codec
+        ....
+        <i>AUDIO_HAL_CODEC_MODE_BOTH
+        ....
+        [codec_chip]
+    ]
+
+    portout "Analog Source | Analog Sink" as AnalogSourceSink
+} 
+
+node "Analog Audio" as AnalogAudio  {
+    portin "Analog Sink | Analog Source" as AnalogSinkSource
+}
+
+'record
+DuerOSHTTPSinkSource <-- HTTPSourceSink       #line:red;line.dotted;text:red
+HTTPSourceSink  <-- recorder_sr          #line:red;line.dotted;text:red
+
+recorder_sr     <-- audio_recorder      #line:red;line.dotted;text:red
+audio_recorder  <-- raw_read            #line:red;line.dotted;text:red : input_cb_for_afe()
+
+raw_read           <-- filter            #line:red;line.bold;text:red
+filter             <-- i2s_stream_reader #line:red;line.bold;text:red
+i2s_stream_reader  <-- HALCodec          #line:red;line.dotted;text:red
+HALCodec           <-- AnalogSourceSink  #line:red;line.dotted;text:red
+
+AnalogSourceSink <-- AnalogSinkSource   #line:red;line.dotted;text:red
+
+
+'play
+DuerOSHTTPSinkSource --> HTTPSourceSink    #line:black;line.dotted;text:black
+
+HTTPSourceSink     --> http_stream_reader  #line:black;line.dotted;text:black
+http_stream_reader --> xxx_decoder         #line:black;line.dotted;text:black
+fs_reader          --> xxx_decoder         #line:black;line.dotted;text:black
+xxx_decoder        --> rsp_filter          #line:black;line.dotted;text:black
+rsp_filter         --> i2s_stream_writer   #line:black;line.dotted;text:black
+i2s_stream_writer  --> HALCodec            #line:black;line.dotted;text:black
+HALCodec   --> AnalogSourceSink            #line:black;line.dotted;text:black
+
+AnalogSourceSink --> AnalogSinkSource    #line:black;line.dotted;text:black
+
+@enduml

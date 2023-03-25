@@ -3,12 +3,10 @@ title Google Translate Device
 allowmixing
 
 legend
-//Ref: esp-adf/player/pipeline_http_mp3//
-//Ref: esp-adf/player/pipeline_http_select_decoder//
-//Ref: esp-adf/player/pipeline_living_stream//
 //Ref: esp-adf/cloud_services/pipeline_baidu_speech_mp3//
 //Ref: esp-adf/cloud_services/pipeline_aws_polly_mp3//
 //Ref: esp-adf/cloud_services/google_translate_device//
+//Ref: esp-adf/advanced_examples/esp_dispatcher_dueros//
 end legend
 
 node "Google Translate \n(HTTP Server) (2)" as GoogleTranslate  {

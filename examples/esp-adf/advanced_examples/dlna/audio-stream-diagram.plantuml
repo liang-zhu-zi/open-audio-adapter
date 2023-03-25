@@ -46,8 +46,7 @@ node "ESP Device" as ESPDevice  {
             ....
             [decoder]
             ....
-            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
-            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO
+            <i><color olive>...
         ]
 
         component rsp_filter #line:black;line.dotted;text:black [
@@ -74,10 +73,7 @@ node "ESP Device" as ESPDevice  {
             ....
             [i2s]
             ....
-            <i><color olive>msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT
-            <i><color olive>msg.cmd == AEL_MSG_CMD_REPORT_STATUS
-            <i><color olive>msg.data == AEL_STATUS_STATE_STOPPED ||
-            <i><color olive>msg.data == AEL_STATUS_STATE_FINISHED
+            <i><color olive>...
         ]
     }
 
